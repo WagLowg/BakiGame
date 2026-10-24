@@ -1,0 +1,16 @@
+{
+  "name": "voidcore",
+  "version": "1.0.0",
+  "description": "Voidcore - game bắn tàu vũ trụ 3D, chơi một mình hoặc cùng bạn bè qua mạng",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Voidcore</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Be+Vietnam+Pro:wght@400;600;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="vig"></div>
+
+<div class="hud" id="xp"><div id="xpFill"></div></div>
+<div class="hud" id="tl" hidden>
+  <div class="lab">Điểm</div>
+  <div id="score">0</div>
+  <div class="row"><span class="lab">Đợt</span><b id="wave">1</b><span class="lab">Cấp</span><b id="lv">1</b></div>
+  <div id="combo" hidden></div>
+  <div id="chips"></div>
+</div>
+<div class="hud" id="boss" hidden><div class="lab">Lõi Hư Không</div><div class="bar"><i id="bossFill"></i></div></div>
+<div class="hud" id="bl" hidden>
+  <div class="row"><span class="lab">Giáp</span><b id="hpTxt">100 / 100</b></div>
+  <div class="bar"><i id="hpFill"></i></div>
+  <div class="bar" id="dashBar"><i id="dashFill"></i></div>
+</div>
+<div class="hud" id="tr" hidden>
+  <button class="icon" id="muteBtn" type="button">ÂM: BẬT</button>
+  <button class="icon" id="pauseBtn" type="button">II</button>
+</div>
+<div class="hud" id="banner"><h2 id="banT">ĐỢT 1</h2><p id="banS"></p></div>
+
+<div id="tags"></div>
+<div class="stick" id="ls" hidden><i></i></div>
+<div class="stick" id="rs" hidden><i></i></div>
+<button id="dashBtn" type="button">LƯỚT</button>
+
+<div class="screen" id="menu">
+  <div class="cab">
+    <h1 class="logo">VOID<br>CORE</h1>
+    <p class="tag">Lái chiến hạm qua những đợt tấn công vô tận. Nhặt tinh thể, lên cấp, ghép nâng cấp thành một cỗ máy hủy diệt. Cứ mỗi 5 đợt, Lõi Hư Không thức dậy.</p>
+    <div class="ctrl desk-only">
+      <kbd>W A S D</kbd><span>Di chuyển</span>
+      <kbd>Chuột</kbd><span>Ngắm, giữ chuột trái để bắn</span>
+      <kbd>F</kbd><span>Bật/tắt tự bắn</span>
+      <kbd>Space · Chuột phải</kbd><span>Lướt né (miễn sát thương)</span>
+      <kbd>Esc · M</kbd><span>Tạm dừng · Tắt tiếng</span>
+    </div>
+    <div class="ctrl touch-only">
+      <kbd>Nửa trái</kbd><span>Kéo để di chuyển</span>
+      <kbd>Nửa phải</kbd><span>Kéo để ngắm và bắn</span>
+      <kbd>LƯỚT</kbd><span>Lướt né (miễn sát thương)</span>
+    </div>
+    <div class="foes">
+      <span><i style="background:#ff4f6d;clip-path:polygon(50% 0,100% 100%,0 100%)"></i>Mũi Nhọn</span>
+      <span><i style="background:#9a7bff;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)"></i>Xạ Thủ</span>
+      <span><i style="background:#2fe0b5;border-radius:50%"></i>Phân Bào</span>
+      <span><i style="background:#ff9a3d"></i>Pháo Đài</span>
+      <span><i style="background:#ff3fa4;clip-path:polygon(50% 0,95% 35%,78% 95%,22% 95%,5% 35%)"></i>Lõi Hư Không</span>
+    </div>
+    <button class="btn" id="startBtn" type="button">Xuất kích</button>
+    <button class="ghost" id="onlineBtn" type="button">CHƠI ONLINE</button>
+    <div class="best err" id="menuMsg" role="status"></div>
+    <div class="best" id="bestM"></div>
+  </div>
+</div>
+
+<div class="screen" id="online" hidden>
+  <div class="cab">
+    <h1 class="logo sm">ONLINE</h1>
+    <p class="tag">Đánh cùng phe với tối đa 3 người bạn. Một người tạo phòng, những người khác nhập mã phòng để vào.</p>
+    <label class="field"><span class="lab">Tên của bạn</span><input id="nameIn" maxlength="14" autocomplete="off" placeholder="Phi công"></label>
+    <button class="btn" id="createBtn" type="button">Tạo phòng</button>
+    <div class="joinrow"><input id="codeIn" maxlength="4" autocomplete="off" placeholder="MÃ PHÒNG" aria-label="Mã phòng"><button class="btn sm" id="joinBtn" type="button">Vào</button></div>
+    <div class="best err" id="onMsg" role="status"></div>
+    <button class="ghost" id="onBack" type="button">QUAY LẠI</button>
+  </div>
+</div>
+
+<div class="screen" id="lobby" hidden>
+  <div class="cab">
+    <div class="lab">Mã phòng</div>
+    <div class="code" id="roomCode">----</div>
+    <p class="tag">Gửi mã này cùng đường link trang game cho bạn bè.</p>
+    <ul class="plist" id="plist"></ul>
+    <button class="btn" id="goBtn" type="button">Bắt đầu</button>
+    <div class="best" id="lobWait"></div>
+    <button class="ghost" id="lobLeave" type="button">RỜI PHÒNG</button>
+  </div>
+</div>
+
+<div class="screen" id="lvl" hidden>
+  <div class="cab">
+    <h3>LÊN CẤP <span id="lvlN"></span></h3>
+    <div class="cards" id="cards"></div>
+    <div class="best" id="lvlWait"></div>
+  </div>
+</div>
+
+<div class="screen" id="pause" hidden>
+  <div class="cab">
+    <h1 class="logo" id="pauseT" style="font-size:clamp(40px,10vw,72px)">TẠM DỪNG</h1>
+    <button class="btn" id="resumeBtn" type="button">Tiếp tục</button>
+    <button class="ghost" id="quitBtn" type="button">VỀ MENU</button>
+  </div>
+</div>
+
+<div class="screen" id="over" hidden>
+  <div class="cab">
+    <h1 class="logo" style="font-size:clamp(40px,11vw,84px)">TÀU VỠ</h1>
+    <div class="stats">
+      <div class="stat"><span class="lab">Điểm</span><b id="oScore">0</b></div>
+      <div class="stat"><span class="lab">Đợt</span><b id="oWave">0</b></div>
+      <div class="stat"><span class="lab">Cấp</span><b id="oLv">0</b></div>
+      <div class="stat"><span class="lab">Hạ gục</span><b id="oKills">0</b></div>
+    </div>
+    <div class="best" id="bestO"></div>
+    <button class="btn" id="againBtn" type="button">Chơi lại</button>
+    <div class="best" id="overWait"></div>
+    <button class="ghost" id="overMenuBtn" type="button" hidden>VỀ MENU</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/MaskPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="net.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
