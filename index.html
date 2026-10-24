@@ -3,14 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Voidcore</title>
+<title>ReChoice</title>
+<meta name="theme-color" content="#07030f">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Be+Vietnam+Pro:wght@400;600;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <canvas id="c"></canvas>
 <div id="vig"></div>
+<div id="flash"></div>
 
+<!-- HUD -->
 <div class="hud" id="xp"><div id="xpFill"></div></div>
 <div class="hud" id="tl" hidden>
   <div class="lab">Điểm</div>
@@ -19,27 +22,38 @@
   <div id="combo" hidden></div>
   <div id="chips"></div>
 </div>
-<div class="hud" id="boss" hidden><div class="lab">Lõi Hư Không</div><div class="bar"><i id="bossFill"></i></div></div>
+<div class="hud" id="boss" hidden>
+  <div class="bossTop"><span class="lab" id="bossName">Lõi Hư Không</span><span class="lab" id="bossInfo"></span></div>
+  <div class="bar"><i id="bossFill"></i><i id="bossGhost"></i></div>
+</div>
 <div class="hud" id="bl" hidden>
   <div class="row"><span class="lab">Giáp</span><b id="hpTxt">100 / 100</b></div>
-  <div class="bar"><i id="hpFill"></i></div>
+  <div class="bar hp"><i id="hpFill"></i></div>
   <div class="bar" id="dashBar"><i id="dashFill"></i></div>
 </div>
 <div class="hud" id="tr" hidden>
   <button class="icon" id="muteBtn" type="button">ÂM: BẬT</button>
-  <button class="icon" id="pauseBtn" type="button">II</button>
+  <button class="icon" id="pauseBtn" type="button" aria-label="Tạm dừng">II</button>
 </div>
 <div class="hud" id="banner"><h2 id="banT">ĐỢT 1</h2><p id="banS"></p></div>
+<div class="hud" id="intro"><p class="lab" id="introK">BOSS ĐẶC BIỆT</p><h2 id="introT"></h2><p id="introS"></p></div>
+<div class="hud" id="toast"></div>
 
 <div id="tags"></div>
+<div id="dmg"></div>
 <div class="stick" id="ls" hidden><i></i></div>
 <div class="stick" id="rs" hidden><i></i></div>
 <button id="dashBtn" type="button">LƯỚT</button>
 
+<!-- MENU -->
 <div class="screen" id="menu">
   <div class="cab">
-    <h1 class="logo">VOID<br>CORE</h1>
-    <p class="tag">Lái chiến hạm qua những đợt tấn công vô tận. Nhặt tinh thể, lên cấp, ghép nâng cấp thành một cỗ máy hủy diệt. Cứ mỗi 5 đợt, Lõi Hư Không thức dậy.</p>
+    <h1 class="logo">RE<br>CHOICE</h1>
+    <p class="tag">Lái chiến hạm qua những đợt tấn công vô tận. Nhặt tinh thể, lên cấp, ghép nâng cấp. Cứ mỗi 10 đợt, một boss đặc biệt thức dậy.</p>
+    <div class="king" id="king" hidden>
+      <svg viewBox="0 0 24 16" aria-hidden="true"><path d="M1 14 3 3l5 5 4-7 4 7 5-5 2 11z"/></svg>
+      <span class="lab">Vua trò chơi</span><b id="kingName"></b><em id="kingScore"></em>
+    </div>
     <div class="ctrl desk-only">
       <kbd>W A S D</kbd><span>Di chuyển</span>
       <kbd>Chuột</kbd><span>Ngắm, giữ chuột trái để bắn</span>
@@ -52,20 +66,18 @@
       <kbd>Nửa phải</kbd><span>Kéo để ngắm và bắn</span>
       <kbd>LƯỚT</kbd><span>Lướt né (miễn sát thương)</span>
     </div>
-    <div class="foes">
-      <span><i style="background:#ff4f6d;clip-path:polygon(50% 0,100% 100%,0 100%)"></i>Mũi Nhọn</span>
-      <span><i style="background:#9a7bff;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)"></i>Xạ Thủ</span>
-      <span><i style="background:#2fe0b5;border-radius:50%"></i>Phân Bào</span>
-      <span><i style="background:#ff9a3d"></i>Pháo Đài</span>
-      <span><i style="background:#ff3fa4;clip-path:polygon(50% 0,95% 35%,78% 95%,22% 95%,5% 35%)"></i>Lõi Hư Không</span>
-    </div>
     <button class="btn" id="startBtn" type="button">Xuất kích</button>
-    <button class="ghost" id="onlineBtn" type="button">CHƠI ONLINE</button>
+    <div class="menuRow">
+      <button class="ghost" id="onlineBtn" type="button">CHƠI ONLINE</button>
+      <button class="ghost" id="boardBtn" type="button">VUA TRÒ CHƠI</button>
+      <button class="ghost" id="setBtn" type="button">CÀI ĐẶT</button>
+    </div>
     <div class="best err" id="menuMsg" role="status"></div>
     <div class="best" id="bestM"></div>
   </div>
 </div>
 
+<!-- ONLINE -->
 <div class="screen" id="online" hidden>
   <div class="cab">
     <h1 class="logo sm">ONLINE</h1>
@@ -90,6 +102,50 @@
   </div>
 </div>
 
+<!-- BẢNG XẾP HẠNG -->
+<div class="screen" id="board" hidden>
+  <div class="cab wide">
+    <h1 class="logo sm crownT">VUA TRÒ CHƠI</h1>
+    <p class="tag" id="boardNote">Những phi công ghi điểm cao nhất.</p>
+    <ol class="rank" id="rankList"></ol>
+    <div class="best" id="boardMsg" role="status"></div>
+    <button class="ghost" id="boardBack" type="button">QUAY LẠI</button>
+  </div>
+</div>
+
+<!-- CÀI ĐẶT -->
+<div class="screen" id="settings" hidden>
+  <div class="cab">
+    <h1 class="logo sm">CÀI ĐẶT</h1>
+    <div class="setlist">
+      <label class="set"><span class="lab">Nhạc nền</span><input type="range" id="volMusic" min="0" max="100" step="1"><b id="volMusicV"></b></label>
+      <label class="set"><span class="lab">Âm thanh hiệu ứng</span><input type="range" id="volSfx" min="0" max="100" step="1"><b id="volSfxV"></b></label>
+      <div class="set"><span class="lab">Chất lượng hình ảnh</span>
+        <div class="seg" id="qual" role="radiogroup" aria-label="Chất lượng hình ảnh">
+          <button type="button" data-q="low" role="radio">Thấp</button>
+          <button type="button" data-q="mid" role="radio">Vừa</button>
+          <button type="button" data-q="high" role="radio">Cao</button>
+        </div>
+      </div>
+      <div class="set"><span class="lab">Rung màn hình</span>
+        <div class="seg" id="shakeSeg" role="radiogroup" aria-label="Rung màn hình">
+          <button type="button" data-s="0" role="radio">Tắt</button>
+          <button type="button" data-s="1" role="radio">Bật</button>
+        </div>
+      </div>
+      <div class="set"><span class="lab">Số sát thương</span>
+        <div class="seg" id="numSeg" role="radiogroup" aria-label="Hiện số sát thương">
+          <button type="button" data-n="0" role="radio">Tắt</button>
+          <button type="button" data-n="1" role="radio">Bật</button>
+        </div>
+      </div>
+    </div>
+    <p class="tag small">Máy chạy chậm hoặc giật thì chọn chất lượng Thấp.</p>
+    <button class="btn" id="setBack" type="button">Xong</button>
+  </div>
+</div>
+
+<!-- LÊN CẤP -->
 <div class="screen" id="lvl" hidden>
   <div class="cab">
     <h3>LÊN CẤP <span id="lvlN"></span></h3>
@@ -98,17 +154,20 @@
   </div>
 </div>
 
+<!-- TẠM DỪNG -->
 <div class="screen" id="pause" hidden>
   <div class="cab">
     <h1 class="logo" id="pauseT" style="font-size:clamp(40px,10vw,72px)">TẠM DỪNG</h1>
     <button class="btn" id="resumeBtn" type="button">Tiếp tục</button>
+    <button class="ghost" id="pauseSet" type="button">CÀI ĐẶT</button>
     <button class="ghost" id="quitBtn" type="button">VỀ MENU</button>
   </div>
 </div>
 
+<!-- KẾT THÚC -->
 <div class="screen" id="over" hidden>
   <div class="cab">
-    <h1 class="logo" style="font-size:clamp(40px,11vw,84px)">TÀU VỠ</h1>
+    <h1 class="logo" id="overT" style="font-size:clamp(40px,11vw,84px)">TÀU VỠ</h1>
     <div class="stats">
       <div class="stat"><span class="lab">Điểm</span><b id="oScore">0</b></div>
       <div class="stat"><span class="lab">Đợt</span><b id="oWave">0</b></div>
@@ -116,9 +175,14 @@
       <div class="stat"><span class="lab">Hạ gục</span><b id="oKills">0</b></div>
     </div>
     <div class="best" id="bestO"></div>
+    <div class="rankMsg" id="rankMsg" role="status"></div>
+    <div class="joinrow" id="saveRow" hidden><input id="saveName" maxlength="14" autocomplete="off" placeholder="Tên của bạn" aria-label="Tên để ghi danh"><button class="btn sm" id="saveBtn" type="button">Ghi danh</button></div>
     <button class="btn" id="againBtn" type="button">Chơi lại</button>
     <div class="best" id="overWait"></div>
-    <button class="ghost" id="overMenuBtn" type="button" hidden>VỀ MENU</button>
+    <div class="menuRow">
+      <button class="ghost" id="overBoard" type="button">VUA TRÒ CHƠI</button>
+      <button class="ghost" id="overMenuBtn" type="button">VỀ MENU</button>
+    </div>
   </div>
 </div>
 

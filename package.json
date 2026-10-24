@@ -1,7 +1,7 @@
 {
-  "name": "voidcore",
-  "version": "1.0.0",
-  "description": "Voidcore - game bắn tàu vũ trụ 3D, chơi một mình hoặc cùng bạn bè qua mạng",
+  "name": "rechoice",
+  "version": "2.0.0",
+  "description": "ReChoice - game bắn tàu vũ trụ 3D, chơi một mình hoặc cùng bạn bè qua mạng",
   "main": "server.js",
   "private": true,
   "scripts": {

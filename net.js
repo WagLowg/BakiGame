@@ -1,4 +1,4 @@
-// Kết nối tới máy chủ Voidcore bằng WebSocket.
+// Kết nối tới máy chủ ReChoice bằng WebSocket.
 // game.js dùng: Net.available(), Net.connect(), Net.send(obj), Net.close(), Net.on('msg'|'close', fn)
 window.Net = (() => {
   let ws = null;
