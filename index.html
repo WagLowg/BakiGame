@@ -29,7 +29,11 @@
 <div class="hud" id="bl" hidden>
   <div class="row"><span class="lab">Giáp</span><b id="hpTxt">100 / 100</b></div>
   <div class="bar hp"><i id="hpFill"></i></div>
+  <div class="row ultRow"><span class="lab">Chiêu cuối [Q/E]</span><b id="ultTxt">ULT 0%</b></div>
+  <div class="bar ult" id="ultBar"><i id="ultFill"></i></div>
   <div class="bar" id="dashBar"><i id="dashFill"></i></div>
+  <div id="buffBadge" hidden></div>
+  <div id="revStatus" hidden></div>
 </div>
 <div class="hud" id="tr" hidden>
   <button class="icon" id="muteBtn" type="button">ÂM: BẬT</button>
@@ -43,6 +47,7 @@
 <div id="dmg"></div>
 <div class="stick" id="ls" hidden><i></i></div>
 <div class="stick" id="rs" hidden><i></i></div>
+<button id="ultBtn" type="button">ULTI</button>
 <button id="dashBtn" type="button">LƯỚT</button>
 
 <!-- MENU -->
@@ -50,6 +55,40 @@
   <div class="cab">
     <h1 class="logo">RE<br>CHOICE</h1>
     <p class="tag">Lái chiến hạm qua những đợt tấn công vô tận. Nhặt tinh thể, lên cấp, ghép nâng cấp. Cứ mỗi 10 đợt, một boss đặc biệt thức dậy.</p>
+    
+    <!-- Bộ chọn Lớp Phi Thuyền -->
+    <div class="class-picker" id="classPicker">
+      <div class="lab" style="margin-bottom:6px">CHỌN LỚP CHIẾN HẠM</div>
+      <div class="class-grid" id="classGrid">
+        <button type="button" class="class-card active" data-class="striker" title="Tất Sát Bão Tố Lôi Đình: Bung cánh lôi quang, phóng 2 cột Lôi Quang khổng lồ & bão đạn lông vũ.">
+          <span class="c-icon">⚡</span>
+          <b class="c-name">TIÊN PHONG</b>
+          <span class="c-desc">Xuyên giáp · <i>Tất Sát: Lôi Đình</i></span>
+        </button>
+        <button type="button" class="class-card" data-class="colossus" title="Tất Sát Tận Thế Nhiệt Hạch: Bung cánh Titan bất tử, sóng nổ Supernova toàn bản đồ & đại bác 360°.">
+          <span class="c-icon">🛡️</span>
+          <b class="c-name">THIẾT GIÁP</b>
+          <span class="c-desc">150 HP · Nổ · <i>Tất Sát: Nhiệt Hạch</i></span>
+        </button>
+        <button type="button" class="class-card" data-class="phantom" title="Tất Sát Băng Phong Tuyệt Kỹ: Bung cánh pha lê Băng Phong, 2 cột Laser Băng & bão lông vũ uốn lượn.">
+          <span class="c-icon">👻</span>
+          <b class="c-name">BÓNG MA</b>
+          <span class="c-desc">Tốc 11.5 · <i>Tất Sát: Băng Phong</i></span>
+        </button>
+        <button type="button" class="class-card" data-class="dronemaster" title="Tất Sát Ma Trận Hủy Diệt: Bung cánh lượng tử, 6 cột Laser Vệ Tinh xoay 360° càn quét sàn đấu.">
+          <span class="c-icon">🛸</span>
+          <b class="c-name">CHỈ HUY</b>
+          <span class="c-desc">2 Drone · <i>Tất Sát: Ma Trận</i></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Bảng Chọn Màu Phi Thuyền -->
+    <div class="color-picker-wrap" id="colorPickerWrap">
+      <div class="lab" style="margin-bottom:6px">MÀU SẮC PHI THUYỀN</div>
+      <div class="color-palette" id="colorPalette"></div>
+    </div>
+
     <div class="king" id="king" hidden>
       <svg viewBox="0 0 24 16" aria-hidden="true"><path d="M1 14 3 3l5 5 4-7 4 7 5-5 2 11z"/></svg>
       <span class="lab">Vua trò chơi</span><b id="kingName"></b><em id="kingScore"></em>
@@ -57,18 +96,22 @@
     <div class="ctrl desk-only">
       <kbd>W A S D</kbd><span>Di chuyển</span>
       <kbd>Chuột</kbd><span>Ngắm, giữ chuột trái để bắn</span>
+      <kbd>Q · E</kbd><span>Chiêu cuối (Ultimate)</span>
       <kbd>F</kbd><span>Bật/tắt tự bắn</span>
       <kbd>Space · Chuột phải</kbd><span>Lướt né (miễn sát thương)</span>
       <kbd>Esc · M</kbd><span>Tạm dừng · Tắt tiếng</span>
+      <kbd>N</kbd><span>Đổi bài nhạc tiếp theo</span>
     </div>
     <div class="ctrl touch-only">
       <kbd>Nửa trái</kbd><span>Kéo để di chuyển</span>
       <kbd>Nửa phải</kbd><span>Kéo để ngắm và bắn</span>
+      <kbd>ULTI</kbd><span>Chiêu cuối khi nộ 100%</span>
       <kbd>LƯỚT</kbd><span>Lướt né (miễn sát thương)</span>
     </div>
     <button class="btn" id="startBtn" type="button">Xuất kích</button>
     <div class="menuRow">
       <button class="ghost" id="onlineBtn" type="button">CHƠI ONLINE</button>
+      <button class="ghost" id="musicBtn" type="button">PLAYLIST 🎵</button>
       <button class="ghost" id="boardBtn" type="button">VUA TRÒ CHƠI</button>
       <button class="ghost" id="setBtn" type="button">CÀI ĐẶT</button>
     </div>
@@ -139,9 +182,27 @@
           <button type="button" data-n="1" role="radio">Bật</button>
         </div>
       </div>
+      <div style="text-align:center;margin-top:10px">
+        <button type="button" class="ghost sm" id="setMusicBtn">TÙY CHỈNH PLAYLIST NHẠC 🎵</button>
+      </div>
     </div>
     <p class="tag small">Máy chạy chậm hoặc giật thì chọn chất lượng Thấp.</p>
     <button class="btn" id="setBack" type="button">Xong</button>
+  </div>
+</div>
+
+<!-- PLAYLIST NHẠC NỀN (JUKEBOX) -->
+<div class="screen" id="musicScreen" hidden>
+  <div class="cab" style="max-width:540px">
+    <h1 class="logo sm">PLAYLIST NHẠC NỀN 🎵</h1>
+    <p class="tag">Chọn những bài hát bạn thích để phát tuần tự khi vào chơi. Khi phát hết danh sách, hệ thống sẽ tự động lặp lại!</p>
+    <div class="playlist-box" id="playlistBox"></div>
+    <div class="playlist-actions">
+      <button type="button" class="ghost sm" id="selectAllTracks">Chọn tất cả</button>
+      <button type="button" class="ghost sm" id="deselectAllTracks">Bỏ chọn hết</button>
+    </div>
+    <p class="tag small" id="playlistCountTxt">Đang tải danh sách bài hát...</p>
+    <button class="btn" id="musicBack" type="button">Xong & Lưu</button>
   </div>
 </div>
 
@@ -194,7 +255,45 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/MaskPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="net.js"></script>
-<script src="game.js"></script>
+<!-- Mạng & Đồng bộ -->
+<script src="js/network/net.js"></script>
+
+<!-- Lõi Game (Core) -->
+<script src="js/core/config.js"></script>
+<script src="js/core/audio.js"></script>
+<script src="js/core/renderer.js"></script>
+<script src="js/core/arena.js"></script>
+
+<!-- Engine OOP & Pooling -->
+<script src="js/engine/ObjectPool.js"></script>
+<script src="js/engine/CameraController.js"></script>
+<script src="js/engine/GameEngine.js"></script>
+
+<!-- Thực thể & OOP Entities -->
+<script src="js/entities/Entity.js"></script>
+<script src="js/entities/Drone.js"></script>
+<script src="js/entities/Ship.js"></script>
+<script src="js/entities/Projectile.js"></script>
+<script src="js/entities/Pickup.js"></script>
+<script src="js/entities/Enemy.js"></script>
+<script src="js/entities/fx.js"></script>
+<script src="js/entities/player.js"></script>
+<script src="js/entities/enemies.js"></script>
+<script src="js/entities/bosses.js"></script>
+
+<!-- Hệ thống Game (Systems) -->
+<script src="js/systems/upgrades.js"></script>
+<script src="js/systems/combat.js"></script>
+<script src="js/systems/wave.js"></script>
+<script src="js/network/sync.js"></script>
+
+<!-- Giao diện & Điều khiển (UI & Controls) -->
+<script src="js/ui/InputManager.js"></script>
+<script src="js/ui/hud.js"></script>
+<script src="js/ui/menu.js"></script>
+<script src="js/ui/controls.js"></script>
+
+<!-- Khởi động vòng lặp game chính -->
+<script src="js/main.js"></script>
 </body>
 </html>

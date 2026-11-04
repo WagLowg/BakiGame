@@ -191,3 +191,54 @@ input[type=range]{width:100%;accent-color:var(--gold);height:24px;cursor:pointer
 .ntag{position:absolute;left:0;top:0;font:600 11px var(--mono);letter-spacing:.06em;color:var(--c);text-align:center;white-space:nowrap;text-shadow:0 1px 4px #000}
 .ntag i{display:block;width:44px;height:4px;margin:3px auto 0;background:rgba(255,255,255,.14);border-radius:1px;overflow:hidden}
 .ntag b{display:block;height:100%;width:100%;background:var(--c)}
+
+
+/* ---------- Ship Class Picker ---------- */
+.class-picker{margin:10px auto 14px;max-width:440px;width:100%}
+.class-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.class-card{all:unset;box-sizing:border-box;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;padding:9px 12px;background:rgba(20,9,38,.65);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:transform .12s,border-color .12s,box-shadow .12s;text-align:left;backdrop-filter:blur(6px)}
+.class-card:hover{transform:translateY(-2px);border-color:var(--gold);background:rgba(40,20,70,.85)}
+.class-card.active{border-color:var(--teal);background:rgba(47,224,208,.16);box-shadow:0 0 16px rgba(47,224,208,.4),inset 0 0 10px rgba(47,224,208,.1)}
+.class-card .c-icon{grid-row:1/3;font-size:24px;display:flex;align-items:center;justify-content:center}
+.class-card .c-name{font:600 13px var(--display);color:var(--ink);letter-spacing:.04em}
+.class-card.active .c-name{color:var(--teal)}
+.class-card .c-desc{font:10px var(--mono);color:var(--dim);line-height:1.2;margin-top:2px}
+
+/* ---------- Ultimate HUD & Mobile Button ---------- */
+.ultRow{display:flex;justify-content:space-between;align-items:baseline;font:600 11px var(--mono);margin-top:2px}
+.bar.ult{height:8px;border-color:rgba(154,123,255,.4)}
+#ultFill{background:linear-gradient(90deg,var(--violet),var(--gold));box-shadow:0 0 10px rgba(154,123,255,.7)}
+.bar.ult.ready{border-color:var(--gold);box-shadow:0 0 14px rgba(255,192,77,.8);animation:ultGlow .6s ease-in-out infinite alternate}
+@keyframes ultGlow{from{box-shadow:0 0 6px rgba(255,192,77,.4)}to{box-shadow:0 0 18px rgba(255,192,77,1)}}
+
+#ultBtn{position:fixed;z-index:3;right:calc(22px + env(safe-area-inset-right,0px));bottom:calc(230px + env(safe-area-inset-bottom,0px));width:66px;height:66px;border-radius:50%;
+  border:2px solid var(--violet);background:rgba(154,123,255,.2);color:var(--violet);font:12px var(--display);display:none;place-items:center;transition:all .15s}
+#ultBtn.ready{border-color:var(--gold);background:rgba(255,192,77,.35);color:var(--gold);box-shadow:0 0 18px rgba(255,192,77,.8);animation:ultGlow .5s ease-in-out infinite alternate}
+@media (pointer:coarse){#ultBtn.on{display:grid}}
+
+/* ---------- Badges & Revive Status ---------- */
+#buffBadge{font:600 11px var(--mono);letter-spacing:.08em;color:var(--gold);background:rgba(255,192,77,.18);border:1px solid var(--gold);padding:3px 8px;border-radius:4px;box-shadow:0 0 10px rgba(255,192,77,.3);display:inline-block;margin-top:4px}
+#revStatus{font:600 11px var(--mono);letter-spacing:.08em;color:var(--teal);background:rgba(47,224,208,.22);border:1px solid var(--teal);padding:4px 8px;border-radius:4px;animation:pulse .6s ease-in-out infinite alternate;display:inline-block;margin-top:4px}
+
+
+/* ---------- Color Palette Picker ---------- */
+.color-picker-wrap{margin:6px auto 14px;max-width:440px;width:100%}
+.color-palette{display:flex;justify-content:center;align-items:center;gap:12px;padding:6px 0}
+.color-dot{all:unset;box-sizing:border-box;width:26px;height:26px;border-radius:50%;cursor:pointer;position:relative;background:var(--col);border:2px solid rgba(255,255,255,.25);transition:transform .15s,box-shadow .15s}
+.color-dot:hover{transform:scale(1.22);box-shadow:0 0 14px var(--col)}
+.color-dot.active{transform:scale(1.32);border-color:#fff;box-shadow:0 0 18px var(--col),inset 0 0 4px #fff}
+
+/* ---------- Playlist Jukebox Modal ---------- */
+.playlist-box{display:flex;flex-direction:column;gap:8px;margin:12px 0;max-height:280px;overflow-y:auto;padding-right:4px}
+.track-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(20,10,36,.7);border:1px solid var(--line);border-radius:8px;transition:all .15s ease}
+.track-item:hover{background:rgba(36,18,64,.85);border-color:var(--teal)}
+.track-item.selected{border-color:var(--teal);background:rgba(47,224,208,.08)}
+.track-left{display:flex;align-items:center;gap:12px;text-align:left;flex:1;min-width:0}
+.track-chk{width:18px;height:18px;accent-color:var(--gold);cursor:pointer;flex-shrink:0}
+.track-info{display:flex;flex-direction:column;min-width:0;flex:1;padding-right:10px}
+.track-title{font:600 13px var(--display);color:var(--ink);letter-spacing:.02em;word-break:break-word;line-height:1.35}
+.track-style{font:11px var(--mono);color:var(--dim);margin-top:3px}
+.track-preview-btn{all:unset;cursor:pointer;padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.2);font:600 11px var(--mono);color:var(--teal);transition:all .15s ease;flex-shrink:0;white-space:nowrap}
+.track-preview-btn:hover{background:rgba(47,224,208,.2);border-color:var(--teal)}
+.track-preview-btn.playing{background:var(--gold);color:#100518;border-color:var(--gold);box-shadow:0 0 12px rgba(255,181,71,.6)}
+.playlist-actions{display:flex;justify-content:center;gap:12px;margin-bottom:6px}
