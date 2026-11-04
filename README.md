@@ -45,6 +45,35 @@ Menu → **CÀI ĐẶT** (hoặc trong lúc tạm dừng):
 - Chất lượng hình ảnh: Thấp / Vừa / Cao. Máy yếu hoặc điện thoại nên chọn Thấp.
 - Bật/tắt rung màn hình và số sát thương.
 
+## 4 Tính năng mới nâng cấp
+
+### 1. 4 Lớp Phi Thuyền Chiến Thuật (Ship Classes)
+Người chơi có thể chọn 1 trong 4 lớp tàu trực tiếp tại Menu chính:
+- **STRIKER (Tiên Phong):** Cân bằng hoàn hảo, đạn tích hợp sẵn khả năng xuyên giáp (`Pierce +1`).
+- **COLOSSUS (Thiết Giáp):** Giáp dày 150 HP, đạn nổ diện rộng (`Boom +1`, đạn to x1.35).
+- **PHANTOM (Bóng Ma):** Tốc độ bay cực nhanh (11.5), lướt né hồi siêu tốc (0.9s), tỉ lệ chí mạng gốc 25%.
+- **DRONEMASTER (Chỉ Huy Drone):** Sở hữu 2 Drone hộ vệ tự hành bay quanh tàu, tự động phát hiện và bắn tỉa kẻ địch.
+
+### 2. Kỹ năng Chiêu Cuối (Ultimate Ability)
+- Tích lũy Năng lượng Nộ (Ultimate) khi tiêu diệt quái vật hoặc khi bị trúng đạn.
+- Khi đạt 100%, nhấn **Q** hoặc **E** (hoặc nút **ULTI** trên Mobile) để kích hoạt:
+  - Tức thì quét sạch toàn bộ đạn địch trên toàn đấu trường!
+  - **Striker:** *Overdrive* — Kích hoạt hỏa lực liên thanh điên cuồng (+150% tốc độ bắn, x2 tốc độ bay) trong 5 giây.
+  - **Colossus:** *Titan Slam* — Bất tử hoàn toàn, phóng ra sóng chấn động 360 độ cực đại thổi bay và nghiền nát quái vật.
+  - **Phantom:** *Time Warp* — Đóng băng làm chậm toàn bộ sàn đấu 80% trong 5 giây, 100% đòn bắn đều chí mạng.
+  - **Dronemaster:** *Orbital Ray* — Kích hoạt 4 chùm laser hủy diệt nhiệt độ cao xoay tròn quét sạch chiến trường.
+
+### 3. Vật phẩm Rơi ngẫu nhiên trên Sàn Đấu (Battlefield Pickups)
+Quái vật và Boss khi bị tiêu diệt có cơ hội rơi 4 loại vật phẩm chiến thuật:
+- **Nano Heal (Xanh ngọc):** Hồi ngay lập tức 40 điểm Giáp.
+- **Super Magnet (Xanh dương điện):** Hút toàn bộ tinh thể EXP rải rác trên sàn bay thẳng về phía tàu.
+- **EMP Nuke (Đỏ cam rực):** Kích nổ bom sóng từ trường quét sạch đạn địch và giáng 350 sát thương lên tất cả quái vật.
+- **Overcharge Boost (Vàng kim):** Nhân đôi hỏa lực (x2 Sát thương) trong 10 giây.
+
+### 4. Cơ chế Cứu Sống Đồng Đội Tại Chỗ trong Co-op (In-Combat Revive)
+- Trong trận đấu nhiều người chơi, khi một phi thuyền hết máu, tàu sẽ không nổ ngay mà chuyển sang trạng thái **Gục ngã (Downed)** kèm vòng cứu hộ năng lượng.
+- Đồng đội chỉ cần di chuyển vào phạm vi vòng bảo hộ và đứng trong 2.5 giây để hồi sinh đồng đội ngay lập tức với 40% giáp mà không cần phải chờ hết đợt!
+
 ## 10 boss đặc biệt
 | Đợt | Boss | Cách hạ |
 | --- | --- | --- |
@@ -70,28 +99,48 @@ Lõi Hư Không thường vẫn xuất hiện ở các đợt 5, 15, 25… Qua �
 - Càng nhiều người thì kẻ địch và boss càng mạnh.
 - Nút II / phím Esc khi chơi online chỉ mở menu, trận vẫn tiếp tục. Nếu chủ phòng thoát, phòng sẽ đóng.
 
-## Các file
-- `index.html` — giao diện: menu, phòng chờ, bảng xếp hạng, cài đặt, HUD, màn lên cấp, màn thua.
-- `style.css` — màu sắc và bố cục.
-- `game.js` — toàn bộ game: đồ họa, hiệu ứng, kẻ địch, 10 boss, nâng cấp, bảng xếp hạng, đồng bộ online.
-- `net.js` — kết nối WebSocket tới máy chủ.
-- `server.js` — máy chủ: phục vụ file game, chuyển tin giữa người chơi, lưu bảng xếp hạng.
-- `package.json` — khai báo thư viện `ws` và lệnh `npm start`.
-- `music/nhac-nen.mp3` — nhạc nền.
-
-## Chỗ hay sửa trong game.js
-- `const T={...}` — chỉ số kẻ địch và boss (máu, tốc độ, sát thương, điểm).
-- `const BOSSES=[...]` — tên và lời nhắc của 10 boss.
-- `const AI={...}` — cách từng boss di chuyển và tấn công.
-- `function buildEnemy(type)` — hình dáng kẻ địch và boss.
-- `function buildShip(slot)` — hình dáng tàu; `const SHIP_COLORS` — màu tàu của 4 người.
-- `const U=[...]` — danh sách nâng cấp khi lên cấp.
-- `function baseStats()` — chỉ số ban đầu của mỗi tàu.
-- `function startWave(n)` — số địch mỗi đợt và lịch boss.
-- `const R=30` — bán kính đấu trường.
+## Cấu trúc Kiến trúc Mã Nguồn (OOP & Clean Architecture)
+- `index.html` — Giao diện chính: HUD, Menu, Phòng chờ, Bảng xếp hạng, Cài đặt.
+- `style.css` — Thiết kế màu sắc Neon Sci-fi và bố cục responsive (PC & Mobile).
+- `server.js` — Máy chủ WebSocket relay và API Bảng xếp hạng "Vua trò chơi".
+- `music/nhac-nen.mp3` — Nhạc nền chiến đấu.
+- `js/` — Kiến trúc Hướng Đối Tượng (OOP) và Quản lý theo Managers/Engine:
+  - `js/engine/` *(Core Game Engine & Lifecycle)*
+    - `ObjectPool.js`: Generic Object Pool Engine tái sử dụng bộ nhớ, chống lag GC.
+    - `CameraController.js`: Class điều khiển góc nhìn camera, lerp bám theo tàu, screen shake.
+    - `GameEngine.js`: Class điều phối trung tâm toàn bộ Game Loop, Physics, Render Passes.
+  - `js/core/` *(Rendering & Audio)*
+    - `config.js`: Cấu hình hệ thống, Hằng số (`R`, `SHIP_COLORS`), Math utilities.
+    - `audio.js`: Bộ tổng hợp âm thanh Web Audio API & Quản lý nhạc nền.
+    - `renderer.js`: Khởi tạo Three.js, Camera, Ánh sáng, UnrealBloomPass, Shader hậu kỳ.
+    - `arena.js`: Đấu trường 3D (sàn tinh vân shader, lưới lục giác, tường năng lượng, thiên thạch).
+  - `js/entities/` *(OOP Entity Hierarchy)*
+    - `Entity.js`: Base class cơ sở trừu tượng cho mọi thực thể 3D.
+    - `Ship.js`: Class Phi thuyền đóng gói 4 Lớp, Drone, Nạp nộ Ultimate, Lướt né, Hồi sinh.
+    - `Drone.js`: Class Drone hộ vệ tự hành bay lượn và tự động bắn tỉa.
+    - `Enemy.js`: Class Kẻ địch đóng gói thuộc tính, HP, AI hành vi và sinh học procedural.
+    - `Projectile.js`: Class `PlayerBullet` & `EnemyBullet` kế thừa từ `Projectile`.
+    - `Pickup.js`: Class Vật phẩm chiến trường 3D (`heal`, `magnet`, `nuke`, `boost`).
+    - `fx.js`: Particle system, Vòng sóng, Mảnh vỡ, Laser, Tia sét, Damage numbers.
+    - `player.js`: Factory dựng hình 3D procedural cho 4 lớp phi thuyền.
+    - `enemies.js`: Pools đạn, tinh thể EXP, pickups và factory kẻ địch.
+    - `bosses.js`: Trí tuệ nhân tạo (AI) và cơ chế chiến đấu của 10 Boss đặc biệt.
+  - `js/systems/` *(Business Systems)*
+    - `upgrades.js`: 14+ Thẻ nâng cấp kỹ năng roguelite, Logic lên cấp và chia bài.
+    - `combat.js`: Hệ thống chiến đấu, Tính sát thương, Combo, Nạp nộ và Revive.
+    - `wave.js`: Hệ thống 100 Đợt quái, Lịch trình xuất hiện Boss, Cân bằng độ khó.
+  - `js/network/` *(Multiplayer Network)*
+    - `net.js`: Thư viện kết nối WebSocket tới server.
+    - `sync.js`: Đồng bộ multiplayer: Snapshot máy chủ, Nội suy chuyển động máy khách.
+  - `js/ui/` *(User Interface & Input)*
+    - `InputManager.js`: Class đóng gói bàn phím, chuột, cần ảo (virtual sticks) cảm ứng.
+    - `hud.js`: Cập nhật HUD (máu, cấp, chiêu cuối, boss bar, tên đồng đội).
+    - `menu.js`: Điều khiển Menu, Bảng xếp hạng online, Cài đặt âm lượng, Phòng chờ lobby.
+    - `controls.js`: Bắt sự kiện bàn phím, chuột và touch controls.
+  - `js/main.js`: Bootstrap khởi chạy `GameEngine` và điều phối chu trình chơi.
 
 ## Nhạc nền
 - File nhạc: `music/nhac-nen.mp3`. Muốn đổi bài, chép file mp3 khác vào và đặt đúng tên này.
-- Chỉnh âm lượng trong **CÀI ĐẶT**. Mức to nhất đặt ở dòng `const BGM_MAX=.8;` trong `game.js`.
+- Chỉnh âm lượng trong **CÀI ĐẶT**. Mức to nhất đặt ở dòng `const BGM_MAX=.8;` trong `js/core/audio.js`.
 - Nếu xóa file nhạc, game tự quay về nhạc điện tử tự tạo.
 - Bài nhạc hiện tại có bản quyền; nếu chia sẻ game công khai, nên thay bằng nhạc miễn phí bản quyền.
