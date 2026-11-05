@@ -2,10 +2,10 @@
   "name": "rechoice",
   "version": "2.0.0",
   "description": "ReChoice - game bắn tàu vũ trụ 3D, chơi một mình hoặc cùng bạn bè qua mạng",
-  "main": "server.js",
+  "main": "game/server/server.js",
   "private": true,
   "scripts": {
-    "start": "node server.js"
+    "start": "node game/server/server.js"
   },
   "engines": {
     "node": ">=18"

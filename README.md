@@ -3,7 +3,7 @@
 Game bắn tàu vũ trụ 3D chạy trên trình duyệt (Three.js). Chơi một mình, hoặc 2–4 người cùng phe qua mạng. Mỗi 10 đợt có một boss đặc biệt, đợt 100 là trận cuối.
 
 ## Chơi một mình
-Mở `index.html` bằng Chrome, Edge hoặc Firefox. Cần có mạng để tải Three.js và phông chữ.
+Mở `game/index.html` bằng Chrome, Edge hoặc Firefox. Cần có mạng để tải Three.js và phông chữ.
 Mở kiểu này thì bảng xếp hạng chỉ lưu trên máy bạn và không chơi online được.
 
 ## Chơi online trên máy của bạn
@@ -100,21 +100,21 @@ Lõi Hư Không thường vẫn xuất hiện ở các đợt 5, 15, 25… Qua �
 - Nút II / phím Esc khi chơi online chỉ mở menu, trận vẫn tiếp tục. Nếu chủ phòng thoát, phòng sẽ đóng.
 
 ## Cấu trúc Kiến trúc Mã Nguồn (OOP & Clean Architecture)
-- `index.html` — Giao diện chính: HUD, Menu, Phòng chờ, Bảng xếp hạng, Cài đặt.
-- `style.css` — Thiết kế màu sắc Neon Sci-fi và bố cục responsive (PC & Mobile).
-- `server.js` — Máy chủ WebSocket relay và API Bảng xếp hạng "Vua trò chơi".
-- `music/nhac-nen.mp3` — Nhạc nền chiến đấu.
-- `js/` — Kiến trúc Hướng Đối Tượng (OOP) và Quản lý theo Managers/Engine:
-  - `js/engine/` *(Core Game Engine & Lifecycle)*
+- `music/` — Nhạc nền (nằm ngoài `game/`; server phục vụ tại `/music/*`).
+- `game/` — Toàn bộ mã nguồn, đồng thời là thư mục gốc của web:
+  - `game/index.html` — Giao diện chính: HUD, Menu, Phòng chờ, Bảng xếp hạng, Cài đặt.
+  - `game/styles/style.css` — Thiết kế màu sắc Neon Sci-fi và bố cục responsive (PC & Mobile).
+  - `game/server/server.js` — Máy chủ WebSocket relay và API Bảng xếp hạng "Vua trò chơi" (trình duyệt không tải được thư mục `server/`; `scores.json` cũng lưu ở đây).
+  - `game/engine/` *(Core Game Engine & Lifecycle)*
     - `ObjectPool.js`: Generic Object Pool Engine tái sử dụng bộ nhớ, chống lag GC.
     - `CameraController.js`: Class điều khiển góc nhìn camera, lerp bám theo tàu, screen shake.
     - `GameEngine.js`: Class điều phối trung tâm toàn bộ Game Loop, Physics, Render Passes.
-  - `js/core/` *(Rendering & Audio)*
+  - `game/core/` *(Rendering & Audio)*
     - `config.js`: Cấu hình hệ thống, Hằng số (`R`, `SHIP_COLORS`), Math utilities.
     - `audio.js`: Bộ tổng hợp âm thanh Web Audio API & Quản lý nhạc nền.
     - `renderer.js`: Khởi tạo Three.js, Camera, Ánh sáng, UnrealBloomPass, Shader hậu kỳ.
     - `arena.js`: Đấu trường 3D (sàn tinh vân shader, lưới lục giác, tường năng lượng, thiên thạch).
-  - `js/entities/` *(OOP Entity Hierarchy)*
+  - `game/entities/` *(OOP Entity Hierarchy)*
     - `Entity.js`: Base class cơ sở trừu tượng cho mọi thực thể 3D.
     - `Ship.js`: Class Phi thuyền đóng gói 4 Lớp, Drone, Nạp nộ Ultimate, Lướt né, Hồi sinh.
     - `Drone.js`: Class Drone hộ vệ tự hành bay lượn và tự động bắn tỉa.
@@ -125,22 +125,22 @@ Lõi Hư Không thường vẫn xuất hiện ở các đợt 5, 15, 25… Qua �
     - `player.js`: Factory dựng hình 3D procedural cho 4 lớp phi thuyền.
     - `enemies.js`: Pools đạn, tinh thể EXP, pickups và factory kẻ địch.
     - `bosses.js`: Trí tuệ nhân tạo (AI) và cơ chế chiến đấu của 10 Boss đặc biệt.
-  - `js/systems/` *(Business Systems)*
+  - `game/systems/` *(Business Systems)*
     - `upgrades.js`: 14+ Thẻ nâng cấp kỹ năng roguelite, Logic lên cấp và chia bài.
     - `combat.js`: Hệ thống chiến đấu, Tính sát thương, Combo, Nạp nộ và Revive.
     - `wave.js`: Hệ thống 100 Đợt quái, Lịch trình xuất hiện Boss, Cân bằng độ khó.
-  - `js/network/` *(Multiplayer Network)*
+  - `game/network/` *(Multiplayer Network)*
     - `net.js`: Thư viện kết nối WebSocket tới server.
     - `sync.js`: Đồng bộ multiplayer: Snapshot máy chủ, Nội suy chuyển động máy khách.
-  - `js/ui/` *(User Interface & Input)*
+  - `game/ui/` *(User Interface & Input)*
     - `InputManager.js`: Class đóng gói bàn phím, chuột, cần ảo (virtual sticks) cảm ứng.
     - `hud.js`: Cập nhật HUD (máu, cấp, chiêu cuối, boss bar, tên đồng đội).
     - `menu.js`: Điều khiển Menu, Bảng xếp hạng online, Cài đặt âm lượng, Phòng chờ lobby.
     - `controls.js`: Bắt sự kiện bàn phím, chuột và touch controls.
-  - `js/main.js`: Bootstrap khởi chạy `GameEngine` và điều phối chu trình chơi.
+  - `game/main.js`: Bootstrap khởi chạy `GameEngine` và điều phối chu trình chơi.
 
 ## Nhạc nền
 - File nhạc: `music/nhac-nen.mp3`. Muốn đổi bài, chép file mp3 khác vào và đặt đúng tên này.
-- Chỉnh âm lượng trong **CÀI ĐẶT**. Mức to nhất đặt ở dòng `const BGM_MAX=.8;` trong `js/core/audio.js`.
+- Chỉnh âm lượng trong **CÀI ĐẶT**. Mức to nhất đặt ở dòng `const BGM_MAX=.8;` trong `game/core/audio.js`.
 - Nếu xóa file nhạc, game tự quay về nhạc điện tử tự tạo.
 - Bài nhạc hiện tại có bản quyền; nếu chia sẻ game công khai, nên thay bằng nhạc miễn phí bản quyền.
