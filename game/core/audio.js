@@ -220,7 +220,9 @@ const MUSIC_TRACKS = MUSIC_FILES.map((item, idx) => ({
   id: 'track_' + idx,
   title: item.file,
   style: item.style,
-  src: encodeURI('music/' + item.file),
+  // music/ nằm ở thư mục gốc dự án, ngoài game/. '../music/' chạy được cả khi mở file:// lẫn qua server
+  // (trên server, '/index.html' + '../music/x' → '/music/x', server.js ánh xạ ra thư mục music/).
+  src: encodeURI('../music/' + item.file),
   isFile: true
 }));
 

@@ -7,7 +7,8 @@ const path = require('path');
 const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 3000;
-const ROOT = __dirname;
+const ROOT = path.join(__dirname, '..');                     // game/  → thư mục gốc của web
+const MUSIC_DIR = path.join(__dirname, '..', '..', 'music'); // music/ ở thư mục gốc dự án → phục vụ tại /music/*
 const MAX_PLAYERS = 4;
 
 /* ---------- phục vụ file tĩnh ---------- */
@@ -27,7 +28,8 @@ const MIME = {
   '.glb': 'model/gltf-binary',
   '.gltf': 'model/gltf+json'
 };
-const BLOCKED = new Set(['node_modules', 'server.js', 'package.json', 'package-lock.json', 'scores.json']);
+// Chặn cả thư mục server/ (mã máy chủ + scores.json) không cho trình duyệt tải về.
+const BLOCKED = new Set(['server', 'node_modules']);
 
 function resolveFile(urlPath) {
   let p;
@@ -38,6 +40,7 @@ function resolveFile(urlPath) {
   if (parts.some(s => s === '..' || s.startsWith('.'))) return null;
   if (BLOCKED.has(parts[0])) return null;
   if (!MIME[path.extname(rel).toLowerCase()]) return null;
+  if (parts[0] === 'music') return path.join(MUSIC_DIR, ...parts.slice(1));
   return path.join(ROOT, rel);
 }
 
@@ -86,7 +89,7 @@ function serveStatic(req, res) {
    Trên Render gói miễn phí, file này bị xóa mỗi khi máy chủ khởi động lại.
    Muốn giữ điểm vĩnh viễn: tạo một cơ sở dữ liệu Redis miễn phí ở upstash.com rồi đặt 2 biến môi trường
    UPSTASH_REDIS_REST_URL và UPSTASH_REDIS_REST_TOKEN trên Render (xem README.md). */
-const SCORES_FILE = path.join(ROOT, 'scores.json');
+const SCORES_FILE = path.join(__dirname, 'scores.json');
 const SCORES_KEY = 'rechoice:scores';
 const MAX_ENTRIES = 100;
 const UP_URL = process.env.UPSTASH_REDIS_REST_URL;
