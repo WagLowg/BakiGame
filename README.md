@@ -1,146 +1,138 @@
-# ReChoice
+# 🚀 ReChoice: 3D Sci-Fi Space Shooter
 
-Game bắn tàu vũ trụ 3D chạy trên trình duyệt (Three.js). Chơi một mình, hoặc 2–4 người cùng phe qua mạng. Mỗi 10 đợt có một boss đặc biệt, đợt 100 là trận cuối.
+<div align="center">
 
-## Chơi một mình
-Mở `game/index.html` bằng Chrome, Edge hoặc Firefox. Cần có mạng để tải Three.js và phông chữ.
-Mở kiểu này thì bảng xếp hạng chỉ lưu trên máy bạn và không chơi online được.
+### Trình Duyệt 3D Roguelite • Co-op Trực Tuyến 2–4 Người • 100 Đợt Sóng • 10 Đại Boss
 
-## Chơi online trên máy của bạn
-1. Cài Node.js (bản 18 trở lên) từ https://nodejs.org.
-2. Mở thư mục BakiGame, gõ `cmd` vào thanh địa chỉ rồi nhấn Enter, sau đó gõ:
-   ```
-   npm install
-   npm start
-   ```
-3. Mở trình duyệt vào `http://localhost:3000`, bấm **CHƠI ONLINE** → **Tạo phòng**.
-4. Người khác cùng Wi-Fi mở `http://<IP máy bạn>:3000` (xem IP bằng lệnh `ipconfig`, dòng IPv4), bấm **CHƠI ONLINE**, nhập mã phòng 4 chữ và bấm **Vào**.
+Tựa game bắn tàu vũ trụ 3D nhịp độ cao vận hành trực tiếp trên nền tảng Web với đồ họa Three.js Neon Sci-fi, cơ chế chiến đấu Roguelite đa dạng và hệ thống đồng bộ mạng thời gian thực.
 
-## Cập nhật bản trên Render
-Mỗi khi sửa game, mở cmd trong thư mục BakiGame và gõ:
-```
-git add .
-git commit -m "Cap nhat game"
-git push
-```
-Render sẽ tự cập nhật sau vài phút.
+![Three.js](https://img.shields.io/badge/Graphics-Three.js%20(WebGL)-black?logo=three.js)
+![NodeJS](https://img.shields.io/badge/Backend-Node.js-green?logo=node.js)
+![WebSocket](https://img.shields.io/badge/Networking-WebSocket%20Relay-blue)
+![Web Audio](https://img.shields.io/badge/Audio-Web%20Audio%20API-orange)
+![Genre](https://img.shields.io/badge/Genre-3D%20Roguelite%20Shooter-purple)
 
-## Bảng xếp hạng "Vua trò chơi"
-- Khi thua, điểm tự được ghi danh (chơi một mình: lần đầu sẽ hỏi tên; chơi online: chủ phòng ghi danh cho cả đội).
-- Người đứng đầu hiện ở menu với danh hiệu **Vua trò chơi**. Bấm nút **VUA TRÒ CHƠI** để xem top 50.
-- Chế độ luyện tập (`?dot=`) không được ghi danh.
+</div>
 
-**Giữ bảng xếp hạng vĩnh viễn trên Render (nên làm):**
-Gói miễn phí của Render xóa file mỗi khi máy chủ ngủ hoặc cập nhật, nên mặc định bảng xếp hạng sẽ bị xóa. Để giữ lại:
-1. Vào https://upstash.com, đăng ký miễn phí, bấm **Create Database** (loại Redis, gói Free).
-2. Trong trang database vừa tạo, tìm phần **REST API**, chép 2 giá trị `UPSTASH_REDIS_REST_URL` và `UPSTASH_REDIS_REST_TOKEN`.
-3. Trên Render, mở web service của game → **Environment** → **Add Environment Variable**, thêm 2 biến trên với đúng tên và giá trị vừa chép → **Save Changes**.
-4. Render tự khởi động lại. Trong phần **Logs** sẽ thấy dòng `Bảng xếp hạng lưu ở: Upstash Redis (vĩnh viễn)`.
+---
 
-Lưu ý: điểm do trình duyệt gửi lên, người rành máy tính vẫn có thể gian lận. Máy chủ chỉ chặn những điểm quá vô lý.
+# 🌌 Tổng Quan Dự Án (Project Overview)
 
-## Cài đặt trong game
-Menu → **CÀI ĐẶT** (hoặc trong lúc tạm dừng):
-- Âm lượng nhạc nền và âm thanh hiệu ứng.
-- Chất lượng hình ảnh: Thấp / Vừa / Cao. Máy yếu hoặc điện thoại nên chọn Thấp.
-- Bật/tắt rung màn hình và số sát thương.
+**ReChoice** là trò chơi bắn tàu không gian 3D hoạt động hoàn toàn trên trình duyệt, kết hợp giữa thể loại bắn súng sinh tồn (Shoot 'em up / Bullet Hell) và cơ chế nâng cấp ngẫu nhiên Roguelite.
 
-## 4 Tính năng mới nâng cấp
+Người chơi có thể tác chiến độc lập hoặc kết nối đội hình 2–4 người qua mạng để cùng vượt qua 100 đợt quái vật biến đổi liên tục, chạm trán 10 trận chiến trùm (Boss) quy mô lớn và cạnh tranh ghi danh trên bảng vinh danh **"Vua Trò Chơi"**.
 
-### 1. 4 Lớp Phi Thuyền Chiến Thuật (Ship Classes)
-Người chơi có thể chọn 1 trong 4 lớp tàu trực tiếp tại Menu chính:
-- **STRIKER (Tiên Phong):** Cân bằng hoàn hảo, đạn tích hợp sẵn khả năng xuyên giáp (`Pierce +1`).
-- **COLOSSUS (Thiết Giáp):** Giáp dày 150 HP, đạn nổ diện rộng (`Boom +1`, đạn to x1.35).
-- **PHANTOM (Bóng Ma):** Tốc độ bay cực nhanh (11.5), lướt né hồi siêu tốc (0.9s), tỉ lệ chí mạng gốc 25%.
-- **DRONEMASTER (Chỉ Huy Drone):** Sở hữu 2 Drone hộ vệ tự hành bay quanh tàu, tự động phát hiện và bắn tỉa kẻ địch.
+---
 
-### 2. Kỹ năng Chiêu Cuối (Ultimate Ability)
-- Tích lũy Năng lượng Nộ (Ultimate) khi tiêu diệt quái vật hoặc khi bị trúng đạn.
-- Khi đạt 100%, nhấn **Q** hoặc **E** (hoặc nút **ULTI** trên Mobile) để kích hoạt:
-  - Tức thì quét sạch toàn bộ đạn địch trên toàn đấu trường!
-  - **Striker:** *Overdrive* — Kích hoạt hỏa lực liên thanh điên cuồng (+150% tốc độ bắn, x2 tốc độ bay) trong 5 giây.
-  - **Colossus:** *Titan Slam* — Bất tử hoàn toàn, phóng ra sóng chấn động 360 độ cực đại thổi bay và nghiền nát quái vật.
-  - **Phantom:** *Time Warp* — Đóng băng làm chậm toàn bộ sàn đấu 80% trong 5 giây, 100% đòn bắn đều chí mạng.
-  - **Dronemaster:** *Orbital Ray* — Kích hoạt 4 chùm laser hủy diệt nhiệt độ cao xoay tròn quét sạch chiến trường.
+# 💡 Điểm Nhấn Trải Nghiệm (Core Highlights)
 
-### 3. Vật phẩm Rơi ngẫu nhiên trên Sàn Đấu (Battlefield Pickups)
-Quái vật và Boss khi bị tiêu diệt có cơ hội rơi 4 loại vật phẩm chiến thuật:
-- **Nano Heal (Xanh ngọc):** Hồi ngay lập tức 40 điểm Giáp.
-- **Super Magnet (Xanh dương điện):** Hút toàn bộ tinh thể EXP rải rác trên sàn bay thẳng về phía tàu.
-- **EMP Nuke (Đỏ cam rực):** Kích nổ bom sóng từ trường quét sạch đạn địch và giáng 350 sát thương lên tất cả quái vật.
-- **Overcharge Boost (Vàng kim):** Nhân đôi hỏa lực (x2 Sát thương) trong 10 giây.
+- **Trải nghiệm ngay trên trình duyệt:** Chạy mượt mà trên các trình duyệt hiện đại (Chrome, Edge, Firefox); tương thích hoàn chỉnh với bàn phím/chuột trên PC và cần ảo cảm ứng trên thiết bị di động.
+- **Phong cách đồ họa Neon Cyberpunk:** Đấu trường tinh vân 3D, hiệu ứng phát sáng hậu kỳ (UnrealBloom Shader), lưới năng lượng lục giác và hệ thống hạt rực rỡ.
+- **Hệ thống nâng cấp Roguelite:** Hơn 14 thẻ bài nâng cấp thuộc tính xuất hiện ngẫu nhiên mỗi khi thăng cấp, mang lại lối xây dựng sức mạnh biến hóa qua từng lượt chơi.
+- **Tối ưu hóa hiệu năng cao:** Tích hợp bộ gom bộ nhớ (Object Pool) cho đạn, hiệu ứng và quái vật, hạn chế tối đa hiện tượng tụt khung hình do thu gom rác (GC lag).
 
-### 4. Cơ chế Cứu Sống Đồng Đội Tại Chỗ trong Co-op (In-Combat Revive)
-- Trong trận đấu nhiều người chơi, khi một phi thuyền hết máu, tàu sẽ không nổ ngay mà chuyển sang trạng thái **Gục ngã (Downed)** kèm vòng cứu hộ năng lượng.
-- Đồng đội chỉ cần di chuyển vào phạm vi vòng bảo hộ và đứng trong 2.5 giây để hồi sinh đồng đội ngay lập tức với 40% giáp mà không cần phải chờ hết đợt!
+---
 
-## 10 boss đặc biệt
-| Đợt | Boss | Cách hạ |
-| --- | --- | --- |
-| 10 | Nữ Hoàng Tổ Ong | Chỉ mất máu khi mở vỏ đẻ trứng; bắn vỡ trứng trước khi nở |
-| 20 | Cự Thạch Phân Rã | Lướt qua sóng chấn động; vỡ thành 2 rồi 4 khối nhỏ |
-| 30 | Hố Đen | Hút tàu và bẻ cong đạn; chỉ bắn được lúc nó thở ra (vành chuyển đỏ) |
-| 40 | Gương Song Sinh | Mặt gương dội đạn ngược; bắn vào mặt tối, hạ cả hai trong 3 giây |
-| 50 | Nhạc Trưởng Hư Không | Phá hết nốt nhạc mới bắn được boss; né laser khi thấy vạch đỏ |
-| 60 | Bóng Ma Săn Mồi | Gần như tàng hình; khi bị đánh dấu vòng đỏ thì lướt né |
-| 70 | Kẻ Đánh Cắp | Cướp tinh thể và nâng cấp; hạ nó để lấy lại tất cả |
-| 80 | Đồng Hồ Thời Gian | Kim đồng hồ là laser; bong bóng làm chậm; tua ngược máu nếu bắn không đủ |
-| 90 | Rồng Plasma | Phá từng đốt thân; đầu rồng chỉ mất máu khi còn dưới 5 đốt |
-| 100 | Lõi Hư Không Tối Thượng | Ba giai đoạn; giai đoạn 3 đấu trường thu nhỏ |
+# 🎮 Chế Độ Chơi (Game Modes)
 
-Lõi Hư Không thường vẫn xuất hiện ở các đợt 5, 15, 25… Qua đợt 100, các boss quay lại mạnh hơn.
+### 1. Chơi Đơn (Single-player)
+- Trải nghiệm toàn bộ 100 đợt sóng và 10 đại Boss độc hành.
+- Điểm số được ghi nhận vào bảng xếp hạng máy cục bộ sau khi kết thúc lượt đấu.
 
-**Luyện tập boss:** thêm `?dot=50` vào cuối đường link (ví dụ `http://localhost:3000/?dot=50`) để vào thẳng đợt 50, kèm sẵn nâng cấp. Đổi số để thử boss khác.
+### 2. Chơi Trực Tuyến Đồng Đội (Co-op 2–4 Người)
+- **Cơ chế phòng:** 1 người chơi khởi tạo phòng, các thành viên khác nhập mã phòng 4 ký tự để tham gia chiến đấu cùng phe.
+- **Chia sẻ tài nguyên:** Toàn đội dùng chung điểm số, đợt sóng và thanh kinh nghiệm (EXP). Khi lên cấp, mỗi thành viên có 25 giây để độc lập chọn thẻ nâng cấp phù hợp với phong cách của mình.
+- **Cân bằng tự động:** Càng đông người chơi, chỉ số máu và mật độ quái vật xuất hiện càng gia tăng.
+- **Hồi sinh qua đợt:** Phi thuyền bị phá hủy hoàn toàn sẽ tự động tái xuất ở đầu đợt sóng tiếp theo với 50% giáp. Toàn đội chỉ thất bại khi tất cả thành viên cùng lúc bị tiêu diệt.
 
-## Cách chơi online
-- Một người **Tạo phòng** (chủ phòng), những người khác nhập mã phòng để vào. Tối đa 4 người.
-- Cả đội chung điểm, chung đợt, chung thanh kinh nghiệm. Khi lên cấp, mỗi người tự chọn nâng cấp cho tàu mình (sau 25 giây sẽ tự chọn ngẫu nhiên).
-- Tàu vỡ sẽ hồi sinh ở đầu đợt sau với nửa giáp. Thua khi cả đội vỡ hết.
-- Càng nhiều người thì kẻ địch và boss càng mạnh.
-- Nút II / phím Esc khi chơi online chỉ mở menu, trận vẫn tiếp tục. Nếu chủ phòng thoát, phòng sẽ đóng.
+---
 
-## Cấu trúc Kiến trúc Mã Nguồn (OOP & Clean Architecture)
-- `music/` — Nhạc nền (nằm ngoài `game/`; server phục vụ tại `/music/*`).
-- `game/` — Toàn bộ mã nguồn, đồng thời là thư mục gốc của web:
-  - `game/index.html` — Giao diện chính: HUD, Menu, Phòng chờ, Bảng xếp hạng, Cài đặt.
-  - `game/styles/style.css` — Thiết kế màu sắc Neon Sci-fi và bố cục responsive (PC & Mobile).
-  - `game/server/server.js` — Máy chủ WebSocket relay và API Bảng xếp hạng "Vua trò chơi" (trình duyệt không tải được thư mục `server/`; `scores.json` cũng lưu ở đây).
-  - `game/engine/` *(Core Game Engine & Lifecycle)*
-    - `ObjectPool.js`: Generic Object Pool Engine tái sử dụng bộ nhớ, chống lag GC.
-    - `CameraController.js`: Class điều khiển góc nhìn camera, lerp bám theo tàu, screen shake.
-    - `GameEngine.js`: Class điều phối trung tâm toàn bộ Game Loop, Physics, Render Passes.
-  - `game/core/` *(Rendering & Audio)*
-    - `config.js`: Cấu hình hệ thống, Hằng số (`R`, `SHIP_COLORS`), Math utilities.
-    - `audio.js`: Bộ tổng hợp âm thanh Web Audio API & Quản lý nhạc nền.
-    - `renderer.js`: Khởi tạo Three.js, Camera, Ánh sáng, UnrealBloomPass, Shader hậu kỳ.
-    - `arena.js`: Đấu trường 3D (sàn tinh vân shader, lưới lục giác, tường năng lượng, thiên thạch).
-  - `game/entities/` *(OOP Entity Hierarchy)*
-    - `Entity.js`: Base class cơ sở trừu tượng cho mọi thực thể 3D.
-    - `Ship.js`: Class Phi thuyền đóng gói 4 Lớp, Drone, Nạp nộ Ultimate, Lướt né, Hồi sinh.
-    - `Drone.js`: Class Drone hộ vệ tự hành bay lượn và tự động bắn tỉa.
-    - `Enemy.js`: Class Kẻ địch đóng gói thuộc tính, HP, AI hành vi và sinh học procedural.
-    - `Projectile.js`: Class `PlayerBullet` & `EnemyBullet` kế thừa từ `Projectile`.
-    - `Pickup.js`: Class Vật phẩm chiến trường 3D (`heal`, `magnet`, `nuke`, `boost`).
-    - `fx.js`: Particle system, Vòng sóng, Mảnh vỡ, Laser, Tia sét, Damage numbers.
-    - `player.js`: Factory dựng hình 3D procedural cho 4 lớp phi thuyền.
-    - `enemies.js`: Pools đạn, tinh thể EXP, pickups và factory kẻ địch.
-    - `bosses.js`: Trí tuệ nhân tạo (AI) và cơ chế chiến đấu của 10 Boss đặc biệt.
-  - `game/systems/` *(Business Systems)*
-    - `upgrades.js`: 14+ Thẻ nâng cấp kỹ năng roguelite, Logic lên cấp và chia bài.
-    - `combat.js`: Hệ thống chiến đấu, Tính sát thương, Combo, Nạp nộ và Revive.
-    - `wave.js`: Hệ thống 100 Đợt quái, Lịch trình xuất hiện Boss, Cân bằng độ khó.
-  - `game/network/` *(Multiplayer Network)*
-    - `net.js`: Thư viện kết nối WebSocket tới server.
-    - `sync.js`: Đồng bộ multiplayer: Snapshot máy chủ, Nội suy chuyển động máy khách.
-  - `game/ui/` *(User Interface & Input)*
-    - `InputManager.js`: Class đóng gói bàn phím, chuột, cần ảo (virtual sticks) cảm ứng.
-    - `hud.js`: Cập nhật HUD (máu, cấp, chiêu cuối, boss bar, tên đồng đội).
-    - `menu.js`: Điều khiển Menu, Bảng xếp hạng online, Cài đặt âm lượng, Phòng chờ lobby.
-    - `controls.js`: Bắt sự kiện bàn phím, chuột và touch controls.
-  - `game/main.js`: Bootstrap khởi chạy `GameEngine` và điều phối chu trình chơi.
+# 🛸 4 Lớp Phi Thuyền Chiến Thuật (Ship Classes)
 
-## Nhạc nền
-- File nhạc: `music/nhac-nen.mp3`. Muốn đổi bài, chép file mp3 khác vào và đặt đúng tên này.
-- Chỉnh âm lượng trong **CÀI ĐẶT**. Mức to nhất đặt ở dòng `const BGM_MAX=.8;` trong `game/core/audio.js`.
-- Nếu xóa file nhạc, game tự quay về nhạc điện tử tự tạo.
-- Bài nhạc hiện tại có bản quyền; nếu chia sẻ game công khai, nên thay bằng nhạc miễn phí bản quyền.
+Người chơi có thể tùy chọn 1 trong 4 lớp phi thuyền ngay tại màn hình chính trước khi vào trận:
+
+| Lớp Tàu | Định Vị | Thuộc Tính Cốt Lõi | Đặc Trưng Tác Chiến |
+| :--- | :--- | :--- | :--- |
+| **STRIKER** | Tiên Phong | Cân bằng toàn diện | Hỏa lực trực diện ổn định; đạn tích hợp sẵn khả năng xuyên giáp (`Pierce +1`). |
+| **COLOSSUS** | Thiết Giáp | Chống chịu cực đại | Lượng máu dày 150 HP; đạn bắn phát nổ diện rộng (`Boom +1`, kích thước đạn x1.35). |
+| **PHANTOM** | Bóng Ma | Cơ động & Bạo kích | Tốc độ bay 11.5; lướt né hồi siêu tốc (0.9s); tỉ lệ đòn đánh chí mạng cơ bản đạt 25%. |
+| **DRONEMASTER** | Chỉ Huy Vệ Tinh | Kiểm soát bản đồ | Khởi đầu cùng 2 Drone tự hành hộ tống, tự động rà quét và bắn tỉa kẻ thù xung quanh. |
+
+---
+
+# ⚡ Kỹ Năng Tối Thượng (Ultimate Abilities)
+
+Tích lũy nộ năng lượng thông qua việc tiêu diệt quái vật hoặc khi nhận sát thương. Khi đạt mốc 100%, nhấn **Q**, **E** (hoặc nút **ULTI** trên di động) để kích hoạt:
+
+> **Quy tắc dọn sàn:** Toàn bộ đạn địch trên đấu trường lập tức bị xóa sạch ngay thời điểm kích hoạt chiêu cuối.
+
+~~~text
+[ Nhận Sát Thương / Diệt Quái ] ──> [ Năng Lượng Đạt 100% ] ──> [ Kích Hoạt Q / E / Nút ULTI ]
+                                                                             │
+             ┌──────────────────────┬──────────────────────┬─────────────────┴─────────────────┐
+             ▼                      ▼                      ▼                                   ▼
+       [ STRIKER ]            [ COLOSSUS ]            [ PHANTOM ]                       [ DRONEMASTER ]
+        Overdrive              Titan Slam              Time Warp                          Orbital Ray
++150% Tốc bắn, x2 Tốc độ   Bất tử hoàn toàn,      Làm chậm đấu trường 80% (5s),    4 Chùm laser hủy diệt 360°,
+di chuyển trong 5 giây.    Phóng sóng chấn động.  100% Đòn bắn đều chí mạng.       Quét sạch toàn bộ quái vật.
+~~~
+
+---
+
+# 🎁 Vật Phẩm Rơi & Cứu Sống Đồng Đội
+
+### 1. Vật Phẩm Chiến Trường (Pickups)
+Khi tiêu diệt Quái vật hoặc Boss, các khối năng lượng ngẫu nhiên sẽ xuất hiện trên sàn đấu:
+- 🟢 **Nano Heal (Xanh ngọc):** Hồi phục lập tức 40 điểm Giáp.
+- 🔵 **Super Magnet (Xanh điện):** Tạo lực từ trường hút toàn bộ tinh thể EXP trên bản đồ về tàu.
+- 🔴 **EMP Nuke (Đỏ cam):** Kích nổ sóng từ trường quét sạch đạn địch và gây 350 sát thương diện rộng.
+- 🟡 **Overcharge Boost (Vàng kim):** Kích hoạt trạng thái hỏa lực cực hạn (Nhân đôi x2 sát thương) trong 10 giây.
+
+### 2. Cơ Chế Cứu Sống Đồng Đội Tại Chỗ (In-Combat Revive)
+- Trong chế độ nhiều người chơi, phi thuyền cạn kiệt HP sẽ rơi vào trạng thái **Gục Ngã (Downed)** kèm vòng bảo hộ năng lượng.
+- Đồng đội chỉ cần di chuyển vào phạm vi bảo hộ và giữ vững vị trí trong **2.5 giây** để hồi sinh đồng đội với **40% Giáp** ngay trong đợt đấu mà không cần đợi sang màn tiếp theo.
+
+---
+
+# 👾 Thử Thách 10 Đại Boss (Wave 10 - 100)
+
+Cứ mỗi 10 đợt sóng, hệ thống sẽ xuất hiện một Boss mang cơ chế thử thách kỹ năng và sự phối hợp:
+
+| Đợt | Đại Boss | Cơ Chế Tác Chiến & Khắc Chế |
+| :---: | :--- | :--- |
+| **10** | **Nữ Hoàng Tổ Ong** | Miễn nhiễm sát thương khi đóng vỏ; chỉ nhận sát thương khi mở vỏ đẻ trứng. Cần ưu tiên phá trứng trước khi nở. |
+| **20** | **Cự Thạch Phân Rã** | Phóng sóng chấn động liên tục (dùng lướt né để vượt qua). Khi bị tiêu diệt sẽ phân tách thành 2 khối vừa và 4 khối nhỏ. |
+| **30** | **Hố Đen** | Hút tàu và bẻ cong quỹ đạo đạn; chỉ bắn được khi hố đen "thở ra" (vành đai năng lượng đổi sang màu đỏ rực). |
+| **40** | **Gương Song Sinh** | Mặt gương phản dội đạn ngược lại; tập trung hỏa lực vào mặt tối và phải hạ cả 2 phân thân cách nhau không quá 3 giây. |
+| **50** | **Nhạc Trưởng Hư Không** | Tạo khiên nốt nhạc bảo vệ; phải bắn hạ toàn bộ nốt nhạc bay và luồn lách né các vạch laser cảnh báo màu đỏ. |
+| **60** | **Bóng Ma Săn Mồi** | Tàng hình gần như hoàn toàn; người chơi phải canh thời điểm lướt né chuẩn xác khi bị vòng khóa mục tiêu đỏ xuất hiện. |
+| **70** | **Kẻ Đánh Cắp** | Hút trộm tinh thể EXP và thẻ nâng cấp của tàu; dồn hỏa lực tiêu diệt nhanh để lấy lại toàn bộ tài nguyên. |
+| **80** | **Đồng Hồ Thời Gian** | Quét laser kim đồng hồ xoay tròn, tạo vùng làm chậm và tự tua ngược máu nếu không bị dồn sát thương đủ nhanh. |
+| **90** | **Rồng Plasma** | Thân rồng gồm nhiều phân đốt; cần phá hủy từng đốt thân trước khi đầu rồng có thể nhận sát thương (khi còn dưới 5 đốt). |
+| **100** | **Lõi Hư Không Tối Thượng** | Trận chiến 3 giai đoạn; giai đoạn cuối cùng đấu trường bị thu hẹp tối đa đòi hỏi kỹ năng né tránh chính xác. |
+
+> **Chế độ Luyện Tập Boss:** Thêm tham số `?dot=` vào sau URL trình duyệt (Ví dụ: `?dot=50`) để vào thẳng đợt sóng mong muốn cùng hệ thống thẻ bài nâng cấp được chuẩn bị sẵn.
+
+---
+
+# 🏆 Bảng Xếp Hạng "Vua Trò Chơi"
+
+- **Cơ chế ghi danh:** Khi kết thúc ván đấu (Game Over), hệ thống tự động ghi nhận điểm số:
+  - *Chơi đơn:* Người chơi nhập tên đại diện trực tiếp tại màn hình kết quả.
+  - *Chơi Co-op:* Chủ phòng đại diện nhập tên vinh danh chung cho cả đội.
+- **Vinh danh:** Người chơi có điểm số cao nhất sẽ xuất hiện trực tiếp tại Menu chính với danh hiệu **Vua Trò Chơi**. Bấm nút **VUA TRÒ CHƠI** để tra cứu bảng vàng Top 50.
+- **Lưu ý:** Chế độ luyện tập (`?dot=`) không ghi nhận điểm vào bảng xếp hạng. Máy chủ có tích hợp thuật toán lọc điểm số bất thường để giữ tính công bằng.
+
+---
+
+# ⚙️ Tùy Chỉnh & Âm Nhạc Trong Game
+
+### 1. Cài Đặt Hệ Thống (Settings)
+Người chơi có thể truy cập phần Cài đặt tại Menu chính hoặc màn hình Tạm dừng (Pause):
+- **Âm lượng:** Điều chỉnh độc lập âm lượng nhạc nền (BGM) và hiệu ứng âm thanh (SFX).
+- **Chất lượng hình ảnh:** 3 mức *Thấp / Vừa / Cao* (thiết bị di động hoặc máy cấu hình yếu nên chọn mức Thấp để tối ưu khung hình).
+- **Hiệu ứng trực quan:** Bật/tắt rung chấn màn hình (Screen Shake) và hiển thị chỉ số sát thương nảy số (Damage Numbers).
+
+### 2. Hệ Thống Âm Thanh (Audio Engine)
+- Sử dụng công nghệ Web Audio API để xử lý âm thanh thời gian thực và tự tổng hợp nhạc nền điện tử trong trường hợp không tải tệp tĩnh.
+- Hỗ trợ phát nhạc nền định dạng MP3, kiểm soát ngưỡng âm lượng an toàn nhằm duy trì trải nghiệm giải trí ổn định.
