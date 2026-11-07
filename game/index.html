@@ -89,6 +89,34 @@
       <div class="color-palette" id="colorPalette"></div>
     </div>
 
+    <!-- Bộ Chọn 4 Cấp Độ Khó (Difficulty Selector) -->
+    <div class="diff-picker-wrap" id="diffPickerWrap">
+      <div class="lab" style="margin-bottom:6px">CẤP ĐỘ KHÓ</div>
+      <div class="diff-grid" id="diffGrid">
+        <button type="button" class="diff-btn" data-diff="easy">
+          <span class="d-dot" style="background:#2fe0d0"></span>
+          <b>DỄ</b>
+          <span class="d-sub">Máu -25% · Buff dồi dào</span>
+        </button>
+        <button type="button" class="diff-btn active" data-diff="normal">
+          <span class="d-dot" style="background:#ffb547"></span>
+          <b>VỪA</b>
+          <span class="d-sub">Chuẩn · Giảm rơi buff</span>
+        </button>
+        <button type="button" class="diff-btn" data-diff="hard">
+          <span class="d-dot" style="background:#ff7a1f"></span>
+          <b>KHÓ</b>
+          <span class="d-sub">HP +65% · Không lõi Boss</span>
+        </button>
+        <button type="button" class="diff-btn" data-diff="nightmare">
+          <span class="d-dot" style="background:#ff3344"></span>
+          <b>SIÊU KHÓ</b>
+          <span class="d-sub">Ác mộng · Không lõi Boss</span>
+        </button>
+      </div>
+      <div class="d-desc-box" id="diffDesc">🟡 TRUNG BÌNH: Cân bằng chuẩn arcade nguyên bản</div>
+    </div>
+
     <div class="king" id="king" hidden>
       <svg viewBox="0 0 24 16" aria-hidden="true"><path d="M1 14 3 3l5 5 4-7 4 7 5-5 2 11z"/></svg>
       <span class="lab">Vua trò chơi</span><b id="kingName"></b><em id="kingScore"></em>
@@ -138,6 +166,11 @@
     <div class="lab">Mã phòng</div>
     <div class="code" id="roomCode">----</div>
     <p class="tag">Gửi mã này cùng đường link trang game cho bạn bè.</p>
+    <div class="lobby-diff-row" id="lobbyDiffRow">
+      <span class="lab">ĐỘ KHÓ:</span>
+      <b class="lobby-diff-badge" id="lobbyDiffBadge">🟡 TRUNG BÌNH</b>
+      <button type="button" class="ghost sm" id="lobbyDiffBtn" style="padding:4px 8px;font-size:11px">ĐỔI</button>
+    </div>
     <ul class="plist" id="plist"></ul>
     <button class="btn" id="goBtn" type="button">Bắt đầu</button>
     <div class="best" id="lobWait"></div>
@@ -165,9 +198,10 @@
       <label class="set"><span class="lab">Âm thanh hiệu ứng</span><input type="range" id="volSfx" min="0" max="100" step="1"><b id="volSfxV"></b></label>
       <div class="set"><span class="lab">Chất lượng hình ảnh</span>
         <div class="seg" id="qual" role="radiogroup" aria-label="Chất lượng hình ảnh">
-          <button type="button" data-q="low" role="radio">Thấp</button>
-          <button type="button" data-q="mid" role="radio">Vừa</button>
-          <button type="button" data-q="high" role="radio">Cao</button>
+          <button type="button" data-q="potato" role="radio" title="Tối ưu tối đa cho máy không có card đồ họa rời">Siêu mượt</button>
+          <button type="button" data-q="low" role="radio" title="Tiết kiệm tài nguyên cho Card tích hợp iGPU">Thấp</button>
+          <button type="button" data-q="mid" role="radio" title="Cân bằng hiệu năng & đồ họa">Vừa</button>
+          <button type="button" data-q="high" role="radio" title="Đồ họa cao nhất cho máy có card rời">Cao</button>
         </div>
       </div>
       <div class="set"><span class="lab">Rung màn hình</span>
@@ -186,7 +220,7 @@
         <button type="button" class="ghost sm" id="setMusicBtn">TÙY CHỈNH PLAYLIST NHẠC 🎵</button>
       </div>
     </div>
-    <p class="tag small">Máy chạy chậm hoặc giật thì chọn chất lượng Thấp.</p>
+    <p class="tag small" id="gpuInfoTag">Máy tính không có card rời nên chọn Siêu mượt hoặc Thấp để đạt 60 FPS.</p>
     <button class="btn" id="setBack" type="button">Xong</button>
   </div>
 </div>
@@ -200,6 +234,11 @@
     <div class="playlist-actions">
       <button type="button" class="ghost sm" id="selectAllTracks">Chọn tất cả</button>
       <button type="button" class="ghost sm" id="deselectAllTracks">Bỏ chọn hết</button>
+      <button type="button" class="ghost sm" id="refreshTracksBtn" title="Quét lại thư mục music/">🔄 Quét folder</button>
+      <label class="ghost sm file-upload-btn" title="Chọn file nhạc từ máy tính">
+        📁 Thêm nhạc từ máy
+        <input type="file" id="musicFileInput" accept="audio/*" multiple style="display:none">
+      </label>
     </div>
     <p class="tag small" id="playlistCountTxt">Đang tải danh sách bài hát...</p>
     <button class="btn" id="musicBack" type="button">Xong & Lưu</button>

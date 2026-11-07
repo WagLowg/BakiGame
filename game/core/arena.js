@@ -11,17 +11,34 @@ const floorMat = new THREE.ShaderMaterial({
     uR: { value: R },
     uPl: { value: [0, 1, 2, 3].map(() => new THREE.Vector2(999, 999)) },
     uRip: { value: [...Array(RIPN)].map(() => new THREE.Vector4(0, 0, -99, 0)) },
-    uBoss: { value: 0 }
+    uBoss: { value: 0 },
+    uSimple: { value: (typeof Q !== 'undefined' && Q.simpleFloor) ? 1.0 : 0.0 }
   },
   extensions: { derivatives: true },
   vertexShader: `varying vec2 vP;void main(){vec4 w=modelMatrix*vec4(position,1.);vP=w.xz;gl_Position=projectionMatrix*viewMatrix*w;}`,
-  fragmentShader: `uniform float uT,uR,uBoss;uniform vec2 uPl[4];uniform vec4 uRip[${RIPN}];varying vec2 vP;
+  fragmentShader: `uniform float uT,uR,uBoss,uSimple;uniform vec2 uPl[4];uniform vec4 uRip[${RIPN}];varying vec2 vP;
   float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
   float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*noise(p);p=p*2.03+7.1;a*=.5;}return v;}
   vec4 hexC(vec2 uv){const vec2 s=vec2(1.,1.7320508);vec4 hc=floor(vec4(uv,uv-vec2(.5,1.))/s.xyxy)+.5;vec4 h=vec4(uv-hc.xy*s,uv-(hc.zw+.5)*s);return dot(h.xy,h.xy)<dot(h.zw,h.zw)?vec4(h.xy,hc.xy):vec4(h.zw,hc.zw+.5);}
   void main(){
     float d=length(vP);
+    if(uSimple > 0.5){
+      // Siêu tối ưu cho Card Onboard (iGPU): Bỏ qua tính toán 8 tầng nhiễu FBM và vòng lặp gợn sóng
+      vec3 neb = mix(vec3(.012,.006,.028), vec3(.10,.03,.18), clamp(sin(vP.x*.03 + uT*.02)*sin(vP.y*.03)*.5 + .5, 0., 1.));
+      vec4 hx = hexC(vP/2.5);
+      vec2 a = abs(hx.xy); float e = .5 - max(dot(a, vec2(.5, .8660254)), a.x);
+      float line = step(e, .035);
+      float inside = 1. - smoothstep(uR - .2, uR + .5, d);
+      vec3 gridC = mix(vec3(.35,.25,.85), vec3(1.,.3,.55), uBoss*.5);
+      vec3 col = neb + gridC * line * .18 * inside;
+      float ring = exp(-abs(d - uR) * 2.2);
+      col += vec3(1., .25, .55) * ring * 1.0;
+      col *= mix(.42, 1., inside);
+      col *= 1. - smoothstep(uR + 20., uR + 120., d) * .85;
+      gl_FragColor = vec4(col, 1.);
+      return;
+    }
     vec2 q=vP*.03;
     float n=fbm(q+vec2(uT*.008,uT*.005));
     float n2=fbm(q*2.2-vec2(uT*.012,0.)+n*1.7);

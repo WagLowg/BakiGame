@@ -62,10 +62,10 @@ class GameEngine {
     this.clearWorld();
     clearShips();
 
-    for (const [id, name, slot] of list) {
+    for (const [id, name, slot, shipClass] of list) {
       const isLocal = (id === NET.myId);
-      const shipClass = isLocal ? selectedClass : 'striker';
-      const s = new Ship(id, name, slot, isLocal, shipClass);
+      const cls = shipClass || (isLocal ? selectedClass : 'striker');
+      const s = new Ship(id, name, slot, isLocal, cls);
       ships.set(id, s);
       if (isLocal) {
         me = s;
@@ -169,10 +169,12 @@ class GameEngine {
     }
     for (; pi < 4; pi++) floorMat.uniforms.uPl.value[pi].set(999, 999);
 
-    for (const s of shards) {
-      s.m.rotation.y += rdt * s.s;
-      s.m.rotation.x += rdt * s.s * 0.6;
-      s.m.position.y = s.y + Math.sin(tAll * 0.6 + s.ph) * 0.6;
+    if (Q && !Q.simpleFloor) {
+      for (const s of shards) {
+        s.m.rotation.y += rdt * s.s;
+        s.m.rotation.x += rdt * s.s * 0.6;
+        s.m.position.y = s.y + Math.sin(tAll * 0.6 + s.ph) * 0.6;
+      }
     }
     for (const p of pillars) {
       p.cap.scale.setScalar(1.2 + 0.8 * Math.max(0, Math.sin(tAll * 2 + p.ph)));
@@ -189,13 +191,44 @@ class GameEngine {
       if (hudT <= 0 && G && live) { hudT = 0.05; hud(); }
     }
 
-    // Hậu kỳ (Post-processing)
+    // Tự động kiểm soát hiệu năng theo thời gian thực (Dynamic FPS Governor)
+    if (live && state === 'play') {
+      this.fpsFrames = (this.fpsFrames || 0) + 1;
+      this.fpsAccum = (this.fpsAccum || 0) + rdt;
+      if (this.fpsAccum >= 2.0) {
+        const curFps = this.fpsFrames / this.fpsAccum;
+        this.fpsFrames = 0;
+        this.fpsAccum = 0;
+
+        if (curFps < 42 && !this.downscaled) {
+          if (SET.quality === 'high') {
+            SET.quality = 'mid';
+            if (typeof applyQuality === 'function') applyQuality();
+            if (typeof renderSettings === 'function') renderSettings();
+            if (typeof rawToast === 'function') rawToast('⚡ Đã tự chuyển về Đồ họa Vừa để ổn định 60 FPS');
+          } else if (SET.quality === 'mid') {
+            SET.quality = 'low';
+            if (typeof applyQuality === 'function') applyQuality();
+            if (typeof renderSettings === 'function') renderSettings();
+            if (typeof rawToast === 'function') rawToast('⚡ Đã kích hoạt Chế độ Siêu Mượt cho Card Onboard');
+          } else if (SET.quality === 'low' && renderer.getPixelRatio() > 0.85) {
+            renderer.setPixelRatio(0.85);
+            resize();
+            this.downscaled = true;
+            if (typeof rawToast === 'function') rawToast('⚡ Tự động tối ưu tỷ lệ khung hình để chống giật lag');
+          }
+        }
+      }
+    }
+
+    // Hậu kỳ (Post-processing) - Bỏ qua hoàn toàn trên Card Onboard (iGPU)
     hurtFx = Math.max(0, hurtFx - rdt * 2.5);
     caFx = Math.max(0, caFx - rdt * 2.5);
     screenFlash = Math.max(0, screenFlash - rdt * 2.2);
     $('flash').style.opacity = screenFlash * 0.6;
 
-    if (postPass) {
+    const useComposer = composer && Q && (Q.bloom || Q.post);
+    if (useComposer && postPass) {
       const u = postPass.uniforms;
       u.uT.value = tAll % 10;
       u.uHurt.value = hurtFx;
@@ -203,7 +236,7 @@ class GameEngine {
       u.uSat.value = state === 'over' ? 0.35 : 1;
     }
 
-    if (composer) composer.render();
+    if (useComposer) composer.render();
     else renderer.render(scene, cam);
   }
 }

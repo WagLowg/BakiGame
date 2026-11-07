@@ -5,8 +5,14 @@
 'use strict';
 
 const canvas = $('c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, Q.pr));
+const useAntialias = (typeof isIGPU !== 'undefined' ? !isIGPU : true) && (typeof Q !== 'undefined' ? Q.pr > 1.2 : false);
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: useAntialias,
+  powerPreference: 'high-performance',
+  precision: (typeof isIGPU !== 'undefined' && isIGPU) ? 'mediump' : 'highp'
+});
+renderer.setPixelRatio(Math.min(typeof devicePixelRatio !== 'undefined' ? devicePixelRatio : 1, Q.pr));
 
 const scene = new THREE.Scene();
 const BG = 0x07030f;
@@ -117,9 +123,15 @@ function fresnelMat(col, power = 2.2, op = 0.8) {
   });
 }
 
+const emptyLineGroup = new THREE.Group();
+emptyLineGroup.visible = false;
+
 const edgeCache = new Map();
 const edgeMats = new Map();
 function edgeLines(geo, col, op = 0.9) {
+  if (typeof Q !== 'undefined' && !Q.edgeLines) {
+    return emptyLineGroup.clone();
+  }
   let eg = edgeCache.get(geo.uuid);
   if (!eg) { eg = new THREE.EdgesGeometry(geo, 24); edgeCache.set(geo.uuid, eg); }
   const k = new THREE.Color(col).getHexString() + '|' + op;

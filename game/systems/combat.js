@@ -42,33 +42,56 @@ function kill(e) {
   const p = e.m.position, boss = !!e.t.boss;
   deathFx(p.x, p.y, p.z, e.t.col, boss ? 3 : e.type === 'tank' ? 1.6 : e.type === 'mini' ? 0.6 : 1);
   G.combo++; G.comboT = 2.2; G.kills++;
-  G.score += e.t.sc * (1 + G.wave * 0.1) * mult();
+  G.score += e.t.sc * (1 + G.wave * 0.1) * mult() * (typeof diffCfg === 'function' ? diffCfg().scoreMul : 1);
 
-  // Nạp Ultimate cho tàu tiêu diệt
+  // Nạp Ultimate cho tàu tiêu diệt (Cân bằng lại tỷ lệ tích nạp)
   const killer = e.lastShip || me;
   if (killer && typeof killer.chargeUlt === 'function') {
-    const charge = boss ? 35 : (e.type === 'tank' ? 10 : 2.5);
+    const charge = boss ? 20 : (e.type === 'tank' ? 4 : 0.6);
     killer.chargeUlt(charge);
   }
 
-  // Rơi Vật phẩm (Feature 3: Pickups)
+  // Rơi Vật phẩm & Thưởng Boss (Pickups & Boss Rewards)
   if (typeof spawnPickup === 'function' && typeof PK_TYPES !== 'undefined') {
     const pkKeys = Object.keys(PK_TYPES);
     const rndPk = () => pkKeys[Math.floor(Math.random() * pkKeys.length)];
+    const df = typeof diffCfg === 'function' ? diffCfg() : {
+      name: 'VỪA',
+      bossCore: true,
+      bossDropRate: 1.0,
+      bossHealRate: 0.35,
+      tankDropRate: 0.18,
+      normalDropRate: 0.018
+    };
+
     if (boss) {
-      spawnPickup(rndPk(), p.x + rnd(-1.5, 1.5), p.z + rnd(-1.5, 1.5));
-      if (Math.random() < 0.6) spawnPickup('heal', p.x + rnd(-1.5, 1.5), p.z + rnd(-1.5, 1.5));
+      const bDropRate = df.bossDropRate !== undefined ? df.bossDropRate : 1.0;
+      if (Math.random() < bDropRate) {
+        spawnPickup(rndPk(), p.x + rnd(-1.5, 1.5), p.z + rnd(-1.5, 1.5));
+      }
+      const bHealRate = df.bossHealRate !== undefined ? df.bossHealRate : 0.35;
+      if (bHealRate > 0 && Math.random() < bHealRate) {
+        spawnPickup('heal', p.x + rnd(-1.5, 1.5), p.z + rnd(-1.5, 1.5));
+      }
       if (!G.fight) {
-        G.pendingLv++;
-        setTimeout(() => {
-          if (state === 'play' && typeof openLevel === 'function') openLevel();
-        }, 450);
-        rawBanner('CHIẾN LỢI PHẨM BOSS!', 'Hạ gục Boss · Thưởng 1 Lõi Nâng Cấp!');
+        if (df.bossCore) {
+          G.pendingLv++;
+          setTimeout(() => {
+            if (state === 'play' && typeof openLevel === 'function') openLevel();
+          }, 450);
+          rawBanner('CHIẾN LỢI PHẨM BOSS!', 'Hạ gục Boss · Thưởng 1 Lõi Nâng Cấp!');
+        } else {
+          rawBanner('HẠ GỤC TRÙM KHÔNG GIAN!', `Chế độ ${df.name} · Không cấp Lõi nâng cấp!`);
+        }
       }
     } else if (e.type === 'tank') {
-      if (Math.random() < 0.35) spawnPickup(rndPk(), p.x, p.z);
-    } else if (Math.random() < 0.04) {
-      spawnPickup(rndPk(), p.x, p.z);
+      const tDropRate = df.tankDropRate !== undefined ? df.tankDropRate : 0.18;
+      if (Math.random() < tDropRate) spawnPickup(rndPk(), p.x, p.z);
+    } else {
+      const nDropRate = df.normalDropRate !== undefined ? df.normalDropRate : 0.018;
+      if (Math.random() < nDropRate) {
+        spawnPickup(rndPk(), p.x, p.z);
+      }
     }
   }
 
@@ -100,7 +123,7 @@ function kill(e) {
 function hurt(s, d) {
   if (s.dead || s.downed || s.inv > 0 || s.dashT > 0 || state !== 'play') return;
   s.S.hp -= d; s.inv = 0.75; G.combo = 0;
-  if (typeof s.chargeUlt === 'function') s.chargeUlt(3);
+  if (typeof s.chargeUlt === 'function') s.chargeUlt(1.5);
   emit(s.pos.x, 0.7, s.pos.z, 0xff4f6d, 16, 7, 0.5);
   if (s.local) flashHurt();
   else if (typeof q === 'function') q(['h', s.id]);

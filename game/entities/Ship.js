@@ -54,8 +54,10 @@ class Ship extends Entity {
     this.ult = 0;
     this.maxUlt = 100;
     this.ultActive = 0;
-    this.ultDuration = 6.0;
+    this.ultDuration = 5.0;
     this.ultTimer = 0;
+    this.ultCooldown = 0;
+    this.wantUlt = false;
 
     // Cơ chế Cứu sống đồng đội tại chỗ (In-Combat Revive)
     this.downed = false;
@@ -219,7 +221,7 @@ class Ship extends Entity {
    * Nạp Năng lượng Nộ (Ultimate)
    */
   chargeUlt(amount) {
-    if (this.ult >= this.maxUlt) return;
+    if (this.ultActive > 0 || this.ultCooldown > 0 || this.ult >= this.maxUlt) return;
     this.ult = Math.min(this.maxUlt, this.ult + amount);
     if (this.ult >= this.maxUlt && this.local) {
       sfx.ultReady();
@@ -231,15 +233,28 @@ class Ship extends Entity {
    * Kích hoạt Chiêu Tất Sát Diện Rộng (Screen-wide AoE Ultimate Ability)
    */
   useUltimate() {
-    if (this.dead || this.downed || this.ult < this.maxUlt || state !== 'play') return;
+    if (this.dead || this.downed || state !== 'play') return;
+    if (NET.mode === 'guest') {
+      if (this.ult >= this.maxUlt && this.ultActive <= 0 && this.ultCooldown <= 0) {
+        this.wantUlt = true;
+        if (typeof sendInput === 'function') sendInput();
+      }
+      return;
+    }
+    if (this.ult < this.maxUlt || this.ultActive > 0 || this.ultCooldown > 0) return;
     this.ult = 0;
     this.ultActive = this.ultDuration;
+    this.ultCooldown = this.ultDuration + 3.0;
     this.ultTimer = 0.05;
     this.inv = this.ultDuration;
     if (sfx.ult) sfx.ult();
     rawScreenFlash(0.45);
     G.shake = 1.8;
     caFx = Math.max(caFx, 1.4);
+
+    if (typeof q === 'function') {
+      q(['U', this.id, this.shipClass, r2(this.pos.x), r2(this.pos.z), r2(this.aim.x), r2(this.aim.z)]);
+    }
 
     // Sóng xung kích mở màn xóa sạch đạn địch toàn bản đồ
     playerShockwave(this, this.pos.x, this.pos.z, 22, 160, this.colorHex);

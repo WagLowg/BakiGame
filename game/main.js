@@ -34,15 +34,17 @@ function menuShip() {
   clearWorld();
   clearShips();
   NET.myId = 'me';
-  const s = addShip('me', '', 0, true);
+  const s = addShip('me', '', 0, true, typeof selectedClass !== 'undefined' ? selectedClass : 'striker');
   s.pos.set(0, 0, 0);
 }
 
 function newRun(list) {
   clearWorld();
   clearShips();
-  for (const [id, name, slot] of list) {
-    const s = addShip(id, name, slot, id === NET.myId);
+  for (const [id, name, slot, shipClass] of list) {
+    const isLocal = (id === NET.myId);
+    const cls = shipClass || (isLocal ? (typeof selectedClass !== 'undefined' ? selectedClass : 'striker') : 'striker');
+    const s = addShip(id, name, slot, isLocal, cls);
     const [x, z] = spawnPoint(slot, list.length);
     s.pos.set(x, 0, z); s.tx = x; s.tz = z; s.lx = x; s.lz = z; s.inv = 1.2;
   }
@@ -108,9 +110,32 @@ function controlLocal(dt) {
   if (isTouch) {
     const t = sticks.R;
     if (t.id !== null && Math.hypot(t.x, t.y) > 0.2) {
-      s.aim.set(t.x, 0, t.y).normalize(); firing = !ovl;
-    } else if (mv.x || mv.z) {
-      s.aim.set(mv.x, 0, mv.z).normalize(); firing = false;
+      s.aim.set(t.x, 0, t.y).normalize();
+      firing = !ovl;
+    } else {
+      // Smart Auto-Aim: Tự động ngắm & bắn quái gần nhất khi không kéo cần ngắm
+      let nearestDist = 24;
+      let targetPos = null;
+      for (const e of enemyList()) {
+        if (e.dead || (e.spawn && e.spawn > 0) || (e.t && e.t.ghost)) continue;
+        const ex = e.m ? e.m.position.x : e.pos.x;
+        const ez = e.m ? e.m.position.z : e.pos.z;
+        const d = Math.hypot(ex - pp.x, ez - pp.z);
+        if (d < nearestDist) {
+          nearestDist = d;
+          targetPos = { x: ex, z: ez };
+        }
+      }
+
+      if (targetPos) {
+        s.aim.set(targetPos.x - pp.x, 0, targetPos.z - pp.z).normalize();
+        firing = !ovl;
+      } else if (mv.x || mv.z) {
+        s.aim.set(mv.x, 0, mv.z).normalize();
+        firing = autoFire && !ovl;
+      } else {
+        firing = autoFire && !ovl;
+      }
     }
     reticle.position.set(pp.x + s.aim.x * 6, 0.05, pp.z + s.aim.z * 6);
   } else {
@@ -173,8 +198,10 @@ function update(dt) {
         }
       } else if (enemies.length === 0 && G.bossPending <= 0) {
         G.breakT = 2.8; G.vacuum = true;
-        for (const s of ships.values()) if (!s.dead) s.S.hp = Math.min(s.S.maxHp, s.S.hp + 10);
-        banner('ĐỢT ' + G.wave + ' SẠCH', '+10 giáp · chuẩn bị đợt ' + (G.wave + 1)); snd('lvl');
+        const df = typeof diffCfg === 'function' ? diffCfg() : { waveHeal: 10 };
+        const healAmt = df.waveHeal !== undefined ? df.waveHeal : 10;
+        for (const s of ships.values()) if (!s.dead) s.S.hp = Math.min(s.S.maxHp, s.S.hp + healAmt);
+        banner('ĐỢT ' + G.wave + ' SẠCH', (healAmt > 0 ? `+${healAmt} giáp · ` : '') + 'chuẩn bị đợt ' + (G.wave + 1)); snd('lvl');
       }
     }
   }
@@ -198,6 +225,7 @@ function update(dt) {
     if (s.dead || s.downed) continue;
     s.inv -= dt;
     if (s.boostT > 0) s.boostT -= dt;
+    if (s.ultCooldown > 0) s.ultCooldown -= dt;
     if (s.S.regen) s.S.hp = Math.min(s.S.maxHp, s.S.hp + s.S.regen * dt);
 
     // Xử lý hiệu ứng & cơ chế Chiêu Tất Sát Diện Rộng độc quyền
@@ -300,7 +328,7 @@ function update(dt) {
       const dx = p.x - s.pos.x, dz = p.z - s.pos.z, rr = 0.45 + b.r;
       if (dx * dx + dz * dz < rr * rr) {
         if (s.inv > 0 || s.dashT > 0) continue;
-        EB.free(b); q(['ef', b.id]); hurt(s, 12 + G.wave * 0.8); break;
+        EB.free(b); q(['ef', b.id]); hurt(s, enemyDmg(12 + G.wave * 0.8)); break;
       }
     }
   }
@@ -351,7 +379,8 @@ function update(dt) {
       else if (d < rg) { const sx = -az * e.dir, sz = ax * e.dir; ax = sx; az = sz; spd *= 0.7; }
       e.cd -= dt;
       if (tgt && e.cd <= 0 && d < rg + 4 && state === 'play') {
-        e.cd = e.t.fire * rnd(0.8, 1.2); fireE(m.position.x, m.position.z, Math.atan2(dx, dz), 11);
+        const frMul = typeof diffCfg === 'function' ? (diffCfg().fireRateMul || 1) : 1;
+        e.cd = (e.t.fire / frMul) * rnd(0.8, 1.2); fireE(m.position.x, m.position.z, Math.atan2(dx, dz), 11);
         e.flash = 0.12; snd('enemyShot');
       }
     } else if (e.type === 'boss') {
@@ -503,6 +532,8 @@ function guestUpdate(dt) {
     s.pos.x += (s.tx - s.pos.x) * k; s.pos.z += (s.tz - s.pos.z) * k;
     s.g.rotation.y = lerpAngle(s.g.rotation.y, s.tRy, k); s.g.rotation.z += (s.tRz - s.g.rotation.z) * k;
     if (s.boostT > 0) s.boostT -= dt;
+    if (s.ultCooldown > 0) s.ultCooldown -= dt;
+    if (s.ultActive > 0) s.ultActive -= dt;
   }
   if (typeof updRevive === 'function') updRevive(dt);
   if (typeof updPickups === 'function') updPickups(dt);

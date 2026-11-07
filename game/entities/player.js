@@ -680,8 +680,9 @@ function updTrail(tr, x, z, show) {
   tr.geo.attributes.position.needsUpdate = true;
 }
 
-function addShip(id, name, slot, local, classId = selectedClass) {
-  const s = new Ship(id, name, slot, local, classId);
+function addShip(id, name, slot, local, classId = null) {
+  const cls = classId || (local ? selectedClass : 'striker');
+  const s = new Ship(id, name, slot, local, cls);
   ships.set(id, s);
   if (local) me = s;
   return s;

@@ -37,11 +37,13 @@ scene.add(pts);
 
 const tc = new THREE.Color();
 function rawEmit(x, y, z, col, n, spd, life = 0.6, up = 0.6, size = 0.38, grav = 9, drag = 0.05) {
-  n = Math.max(1, Math.round(n * Q.pMul));
+  const mul = (typeof Q !== 'undefined' && Q.pMul !== undefined) ? Q.pMul : 1;
+  n = Math.max(1, Math.round(n * mul));
+  const poolLimit = (typeof Q !== 'undefined' && Q.pMax) ? Math.min(PMAX, Q.pMax) : PMAX;
   tc.set(col);
   for (let i = 0; i < n; i++) {
     const k = pIdx;
-    pIdx = (pIdx + 1) % PMAX;
+    pIdx = (pIdx + 1) % poolLimit;
     const a = Math.random() * TAU, s = spd * (0.25 + Math.random() * 0.75);
     pPos[k * 3] = x; pPos[k * 3 + 1] = y; pPos[k * 3 + 2] = z;
     pVel[k * 3] = Math.cos(a) * s; pVel[k * 3 + 1] = (Math.random() * up + 0.08) * s; pVel[k * 3 + 2] = Math.sin(a) * s;
@@ -54,8 +56,9 @@ function rawEmit(x, y, z, col, n, spd, life = 0.6, up = 0.6, size = 0.38, grav =
 }
 
 function rawGlow(x, y, z, col, size, life = 0.25) {
+  const poolLimit = (typeof Q !== 'undefined' && Q.pMax) ? Math.min(PMAX, Q.pMax) : PMAX;
   const k = pIdx;
-  pIdx = (pIdx + 1) % PMAX;
+  pIdx = (pIdx + 1) % poolLimit;
   tc.set(col);
   pPos[k * 3] = x; pPos[k * 3 + 1] = y; pPos[k * 3 + 2] = z;
   pVel[k * 3] = pVel[k * 3 + 1] = pVel[k * 3 + 2] = 0;
@@ -67,8 +70,14 @@ function rawGlow(x, y, z, col, size, life = 0.25) {
 }
 
 function updParticles(dt) {
-  for (let k = 0; k < PMAX; k++) {
-    if (pLife[k] <= 0) { if (pA[k] !== 0) { pA[k] = 0; pSize[k] = 0; } continue; }
+  const poolLimit = (typeof Q !== 'undefined' && Q.pMax) ? Math.min(PMAX, Q.pMax) : PMAX;
+  let hasActive = false;
+  for (let k = 0; k < poolLimit; k++) {
+    if (pLife[k] <= 0) {
+      if (pA[k] !== 0) { pA[k] = 0; pSize[k] = 0; hasActive = true; }
+      continue;
+    }
+    hasActive = true;
     pLife[k] -= dt;
     const j = k * 3, damp = Math.pow(pDrag[k], dt);
     pVel[j] *= damp; pVel[j + 2] *= damp; pVel[j + 1] = pVel[j + 1] * damp - pGrav[k] * dt;
@@ -79,10 +88,12 @@ function updParticles(dt) {
     pA[k] = t;
     pSize[k] = pS0[k] * (0.35 + 0.65 * t);
   }
-  pGeo.attributes.position.needsUpdate = true;
-  pGeo.attributes.aCol.needsUpdate = true;
-  pGeo.attributes.aSize.needsUpdate = true;
-  pGeo.attributes.aA.needsUpdate = true;
+  if (hasActive) {
+    pGeo.attributes.position.needsUpdate = true;
+    pGeo.attributes.aCol.needsUpdate = true;
+    pGeo.attributes.aSize.needsUpdate = true;
+    pGeo.attributes.aA.needsUpdate = true;
+  }
 }
 
 /* ---------- Đối tượng hồ bơi (Object Pool) ---------- */

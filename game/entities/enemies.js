@@ -803,7 +803,8 @@ function fireE(x, z, a, spd, size = 1) {
   const b = EB.get();
   b.id = ++ebSeq;
   b.m.position.set(x, 0.8, z);
-  b.v.set(Math.sin(a) * spd, 0, Math.cos(a) * spd);
+  const realSpd = spd * (typeof diffCfg === 'function' ? diffCfg().spdMul : 1);
+  b.v.set(Math.sin(a) * realSpd, 0, Math.cos(a) * realSpd);
   b.life = 6;
   b.m.rotation.y = a;
   b.r = 0.32 * size;

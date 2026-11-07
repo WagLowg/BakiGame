@@ -106,6 +106,97 @@ try {
   if (sc && SHIP_CLASSES[sc]) selectedClass = sc;
 } catch (e) {}
 
+/* ---------- Hệ Thống 4 Cấp Độ Khó (Difficulty System) ---------- */
+const DIFFICULTIES = {
+  easy: {
+    id: 'easy',
+    name: 'DỄ',
+    badge: '🟢 DỄ',
+    desc: 'Quái máu ít (-25%), sát thương thấp (-30%), đạn chậm, rơi buff dồi dào, diệt Boss nhận Lõi',
+    hpMul: 0.75,
+    dmgMul: 0.70,
+    spdMul: 0.80,
+    spawnMul: 0.80,
+    fireRateMul: 0.85,
+    scoreMul: 0.80,
+    bossCore: true,
+    normalDropRate: 0.08,
+    tankDropRate: 0.50,
+    bossDropRate: 1.0,
+    bossHealRate: 0.80,
+    waveHeal: 15,
+    bossClearHeal: 50,
+    color: '#2fe0d0'
+  },
+  normal: {
+    id: 'normal',
+    name: 'VỪA',
+    badge: '🟡 TRUNG BÌNH',
+    desc: 'Cân bằng chuẩn: Giảm tỷ lệ rơi buff hỗ trợ, quái arcade, diệt Boss nhận Lõi',
+    hpMul: 1.0,
+    dmgMul: 1.0,
+    spdMul: 1.0,
+    spawnMul: 1.0,
+    fireRateMul: 1.0,
+    scoreMul: 1.0,
+    bossCore: true,
+    normalDropRate: 0.018,
+    tankDropRate: 0.18,
+    bossDropRate: 1.0,
+    bossHealRate: 0.35,
+    waveHeal: 10,
+    bossClearHeal: 35,
+    color: '#ffb547'
+  },
+  hard: {
+    id: 'hard',
+    name: 'KHÓ',
+    badge: '🟠 KHÓ',
+    desc: 'Thử thách: Máu +65%, Dame +55%, quái nhanh & bão đạn, rơi ít buff, DIỆT BOSS KHÔNG NHẬN LÕI',
+    hpMul: 1.65,
+    dmgMul: 1.55,
+    spdMul: 1.20,
+    spawnMul: 1.35,
+    fireRateMul: 1.25,
+    scoreMul: 1.60,
+    bossCore: false,
+    normalDropRate: 0.007,
+    tankDropRate: 0.08,
+    bossDropRate: 0.50,
+    bossHealRate: 0.15,
+    waveHeal: 5,
+    bossClearHeal: 15,
+    color: '#ff7a1f'
+  },
+  nightmare: {
+    id: 'nightmare',
+    name: 'SIÊU KHÓ',
+    badge: '🔴 SIÊU KHÓ',
+    desc: 'Ác mộng: Máu +150%, Dame +125%, bão đạn xé gió, rơi buff cực hiếm, DIỆT BOSS KHÔNG NHẬN LÕI',
+    hpMul: 2.50,
+    dmgMul: 2.25,
+    spdMul: 1.40,
+    spawnMul: 1.65,
+    fireRateMul: 1.50,
+    scoreMul: 2.50,
+    bossCore: false,
+    normalDropRate: 0.002,
+    tankDropRate: 0.03,
+    bossDropRate: 0.25,
+    bossHealRate: 0.0,
+    waveHeal: 2,
+    bossClearHeal: 5,
+    color: '#ff3344'
+  }
+};
+
+let currentDifficulty = 'normal';
+try {
+  const sd = localStorage.getItem('rechoice-difficulty');
+  if (sd && DIFFICULTIES[sd]) currentDifficulty = sd;
+} catch (e) {}
+const diffCfg = () => DIFFICULTIES[currentDifficulty] || DIFFICULTIES.normal;
+
 // Trạng thái vòng đời game
 const STATES = ['menu', 'lobby', 'play', 'levelup', 'dying', 'over', 'pause'];
 let state = 'menu';
@@ -142,18 +233,93 @@ const coarse = matchMedia('(pointer:coarse)').matches;
 let isTouch = coarse;
 let autoFire = false;
 
+// Tự động nhận diện phần cứng đồ họa (iGPU / Card Onboard vs dGPU / Card rời)
+function detectGPUHardware() {
+  let isIGPU = false;
+  let gpuName = 'Card tích hợp (iGPU)';
+  try {
+    const testCanvas = document.createElement('canvas');
+    const gl = testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl');
+    if (gl) {
+      const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      if (dbg) {
+        gpuName = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '';
+        const igpuKeywords = [
+          /intel/i, /uhd/i, /hd graphics/i, /iris/i, /mali/i, /adreno/i,
+          /powervr/i, /microsoft basic/i, /swiftshader/i, /llvmpipe/i,
+          /radeon.*graphics/i, /radeon.*vega/i, /geforce.*m\b/i
+        ];
+        const isDiscrete = /rtx|gtx\s*(1[0-9]{3}|20[0-9]{2}|30[0-9]{2}|40[0-9]{2}|9[5-9]0)|radeon\s*rx/i.test(gpuName);
+        if (!isDiscrete && (igpuKeywords.some(rx => rx.test(gpuName)) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4))) {
+          isIGPU = true;
+        }
+      }
+    }
+  } catch (e) {
+    isIGPU = true;
+  }
+  return { isIGPU, gpuName };
+}
+
+const GPU_INFO = detectGPUHardware();
+const isIGPU = GPU_INFO.isIGPU;
+
+// Mặc định tự động chọn cấu hình phù hợp với phần cứng máy
+const defaultQuality = isIGPU ? 'low' : (coarse ? 'mid' : 'high');
+
 const SET = Object.assign(
-  { music: 60, sfx: 80, quality: coarse ? 'mid' : 'high', shake: 1, nums: 1 },
+  { music: 60, sfx: 80, quality: defaultQuality, shake: 1, nums: 1 },
   (() => { try { return JSON.parse(lsGet(KEY.set) || '{}'); } catch (e) { return {}; } })()
 );
 const saveSet = () => lsSet(KEY.set, JSON.stringify(SET));
 
 const QUAL = {
-  low: { pr: 1, bloom: false, post: false, pMul: 0.45, trail: false, debris: 0.35 },
-  mid: { pr: 1.5, bloom: true, post: true, pMul: 0.75, trail: true, debris: 0.7 },
-  high: { pr: 2, bloom: true, post: true, pMul: 1, trail: true, debris: 1 }
+  potato: {
+    pr: 0.85,
+    bloom: false,
+    post: false,
+    pMul: 0.3,
+    trail: false,
+    debris: 0.2,
+    pMax: 1000,
+    simpleFloor: true,
+    edgeLines: false
+  },
+  low: {
+    pr: 1.0,
+    bloom: false,
+    post: false,
+    pMul: 0.45,
+    trail: false,
+    debris: 0.35,
+    pMax: 1500,
+    simpleFloor: true,
+    edgeLines: false
+  },
+  mid: {
+    pr: Math.min(1.25, typeof devicePixelRatio !== 'undefined' ? devicePixelRatio : 1),
+    bloom: true,
+    post: true,
+    pMul: 0.75,
+    trail: true,
+    debris: 0.65,
+    pMax: 3000,
+    simpleFloor: false,
+    edgeLines: true
+  },
+  high: {
+    pr: Math.min(1.75, typeof devicePixelRatio !== 'undefined' ? devicePixelRatio : 1),
+    bloom: true,
+    post: true,
+    pMul: 1.0,
+    trail: true,
+    debris: 1.0,
+    pMax: 5000,
+    simpleFloor: false,
+    edgeLines: true
+  }
 };
-let Q = QUAL[SET.quality] || QUAL.high;
+let Q = QUAL[SET.quality] || QUAL.low;
 
 const PRACTICE = Math.max(1, Math.min(500, parseInt(new URLSearchParams(location.search).get('dot')) || 1));
 
