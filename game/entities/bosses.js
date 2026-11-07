@@ -13,7 +13,7 @@ function markShip(s, dur) { rawMark(s.id, dur); if (typeof q === 'function') q([
 function toast(s, txt) { if (s.local) rawToast(txt); else if (typeof q === 'function') q(['to', s.id, txt]); }
 function segDist(px, pz, x1, z1, x2, z2) { const dx = x2 - x1, dz = z2 - z1, l2 = dx * dx + dz * dz || 1; let t = ((px - x1) * dx + (pz - z1) * dz) / l2; t = clamp(t, 0, 1); const ex = x1 + dx * t - px, ez = z1 + dz * t - pz; return Math.sqrt(ex * ex + ez * ez); }
 function moveTo(e, x, z, k) { e.m.position.x += (x - e.m.position.x) * k; e.m.position.z += (z - e.m.position.z) * k; }
-function enemyDmg(base) { return base * (1 + 0.04 * (G ? G.wave : 1)); }
+function enemyDmg(base) { return base * (1 + 0.04 * (G ? G.wave : 1)) * (typeof diffCfg === 'function' ? diffCfg().dmgMul : 1); }
 function silentKill(e, fx = true) { if (e.dead) return; e.dead = true; e.silent = true; if (fx) deathFx(e.m.position.x, e.m.position.y, e.m.position.z, e.t.col, 0.8); }
 
 function spawnBee(q, slot) {
@@ -506,27 +506,33 @@ function startFight(idx) {
 
 function endFight() {
   const f = G.fight; G.fight = null;
+  const df = typeof diffCfg === 'function' ? diffCfg() : { bossCore: true, bossClearHeal: 35, name: 'VỪA' };
   for (const e of enemies) if (!e.dead && e.t.part) silentKill(e);
-  for (const s of ships.values()) if (!s.dead) s.S.hp = Math.min(s.S.maxHp, s.S.hp + 40);
+  const healAmt = df.bossClearHeal !== undefined ? df.bossClearHeal : 35;
+  for (const s of ships.values()) if (!s.dead) s.S.hp = Math.min(s.S.maxHp, s.S.hp + healAmt);
   G.bossKind = -1; G.boss = null; G.shrink = false;
 
-  // Cơ chế Thưởng Lõi Boss: Tiêu diệt Boss nhận ngay 1 lượt chọn lõi nâng cấp
-  G.pendingLv++;
-  setTimeout(() => {
-    if (state === 'play' && typeof openLevel === 'function') openLevel();
-  }, 450);
+  // Cơ chế Thưởng Lõi Boss: Chỉ nhận khi độ khó cho phép (Easy & Normal)
+  if (df.bossCore) {
+    G.pendingLv++;
+    setTimeout(() => {
+      if (state === 'play' && typeof openLevel === 'function') openLevel();
+    }, 450);
+  }
 
   if (f && f.kind === 9) {
     G.wins++; G.score += 50000 * (typeof loopMul === 'function' ? loopMul() : 1);
-    banner('CHIẾN THẮNG TUYỆT ĐỐI!', 'Lõi Hư Không Đã Vỡ · Thưởng Lõi Tối Thượng!');
+    banner('CHIẾN THẮNG TUYỆT ĐỐI!', 'Lõi Hư Không Đã Vỡ · Thắng Toàn Diện!');
     snd('win');
     if (typeof q === 'function') q(['V']);
     victoryFx();
   } else if (f && f.kind >= 0) {
-    banner(BOSSES[f.kind].name.toUpperCase() + ' ĐÃ BỊ HẠ!', 'Chiến lợi phẩm: Chọn 1 Lõi Nâng Cấp!');
+    const sub = df.bossCore ? 'Chiến lợi phẩm: Chọn 1 Lõi Nâng Cấp!' : `Chế độ ${df.name}: Hạ Trùm Khủng · Không cấp Lõi!`;
+    banner(BOSSES[f.kind].name.toUpperCase() + ' ĐÃ BỊ HẠ!', sub);
     snd('lvl');
   } else {
-    banner('TRÙM ĐÃ BỊ TIÊU DIỆT!', 'Chiến lợi phẩm: Chọn 1 Lõi Nâng Cấp!');
+    const sub = df.bossCore ? 'Chiến lợi phẩm: Chọn 1 Lõi Nâng Cấp!' : `Chế độ ${df.name}: Hạ Trùm Thành Công · Không cấp Lõi!`;
+    banner('TRÙM ĐÃ BỊ TIÊU DIỆT!', sub);
     snd('lvl');
   }
 }

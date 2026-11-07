@@ -20,6 +20,9 @@ const MIME = {
   '.mp3': 'audio/mpeg',
   '.ogg': 'audio/ogg',
   '.wav': 'audio/wav',
+  '.m4a': 'audio/mp4',
+  '.aac': 'audio/aac',
+  '.flac': 'audio/flac',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -40,7 +43,13 @@ function resolveFile(urlPath) {
   if (parts.some(s => s === '..' || s.startsWith('.'))) return null;
   if (BLOCKED.has(parts[0])) return null;
   if (!MIME[path.extname(rel).toLowerCase()]) return null;
-  if (parts[0] === 'music') return path.join(MUSIC_DIR, ...parts.slice(1));
+  if (parts[0] === 'music') {
+    const p1 = path.join(MUSIC_DIR, ...parts.slice(1));
+    if (fs.existsSync(p1)) return p1;
+    const p2 = path.join(ROOT, 'music', ...parts.slice(1));
+    if (fs.existsSync(p2)) return p2;
+    return p1;
+  }
   return path.join(ROOT, rel);
 }
 
@@ -195,12 +204,82 @@ async function handleScores(req, res) {
   }
 }
 
+/* ---------- Quản lý thư viện nhạc /music động ---------- */
+let musicScanner = null;
+try { musicScanner = require('./scan-music'); } catch (e) {}
+
+const AUDIO_EXTS = musicScanner ? musicScanner.AUDIO_EXTS : new Set(['.mp3', '.ogg', '.wav', '.m4a', '.aac', '.flac']);
+
+function scanMusicDir() {
+  if (musicScanner && typeof musicScanner.scan === 'function') {
+    return musicScanner.scan();
+  }
+  try {
+    if (!fs.existsSync(MUSIC_DIR)) fs.mkdirSync(MUSIC_DIR, { recursive: true });
+    const files = fs.readdirSync(MUSIC_DIR);
+    const tracks = [];
+    for (const file of files) {
+      const ext = path.extname(file).toLowerCase();
+      if (AUDIO_EXTS.has(ext)) {
+        tracks.push({
+          file: file,
+          title: file.replace(/\.[^/.]+$/, ''),
+          style: 'Nhạc /music',
+          src: '/music/' + encodeURIComponent(file)
+        });
+      }
+    }
+    return tracks;
+  } catch (err) {
+    console.error('Không thể quét thư mục music/:', err.message);
+    return [];
+  }
+}
+
+function updateStaticMusicJson() {
+  return scanMusicDir();
+}
+
 const server = http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0];
+
   if (url === '/api/scores') {
     handleScores(req, res).catch(e => { console.error(e); sendJson(res, 500, { error: 'Lỗi máy chủ.' }); });
     return;
   }
+
+  // API lấy danh sách bài hát động trong thư mục music/
+  if (url === '/api/tracks' && req.method === 'GET') {
+    const tracks = scanMusicDir();
+    return sendJson(res, 200, { ok: true, tracks });
+  }
+
+  // API upload bài hát mới từ trình duyệt lưu thẳng vào thư mục music/
+  if (url === '/api/upload-track' && req.method === 'POST') {
+    const rawFileName = req.headers['x-filename'] || ('track_' + Date.now() + '.mp3');
+    let fileName = decodeURIComponent(rawFileName).replace(/[/\\?%*:|"<>]/g, '_');
+    const ext = path.extname(fileName).toLowerCase();
+    if (!AUDIO_EXTS.has(ext)) {
+      return sendJson(res, 400, { error: 'Chỉ chấp nhận các file âm thanh (.mp3, .ogg, .wav, .m4a, .aac, .flac)' });
+    }
+    if (!fs.existsSync(MUSIC_DIR)) fs.mkdirSync(MUSIC_DIR, { recursive: true });
+    const filePath = path.join(MUSIC_DIR, fileName);
+    const writeStream = fs.createWriteStream(filePath);
+    req.pipe(writeStream);
+    writeStream.on('finish', () => {
+      console.log(`[Music] Đã tải lên file mới vào thư mục music/: ${fileName}`);
+      const tracks = updateStaticMusicJson();
+      sendJson(res, 200, { ok: true, file: fileName, tracks });
+      for (const ws of wss.clients) {
+        if (ws.readyState === 1) send(ws, { t: 'tracksUpdated', tracks });
+      }
+    });
+    writeStream.on('error', (err) => {
+      sendJson(res, 500, { error: 'Không thể lưu file: ' + err.message });
+    });
+    return;
+  }
+
   serveStatic(req, res);
 });
 
@@ -251,6 +330,7 @@ wss.on('connection', ws => {
       const room = { code: newCode(), host: ws, peers: new Map([[ws.id, ws]]) };
       rooms.set(room.code, room);
       ws.room = room;
+      ws.shipClass = m.shipClass || 'striker';
       return send(ws, { t: 'created', code: room.code, id: ws.id });
     }
 
@@ -261,8 +341,9 @@ wss.on('connection', ws => {
       if (room.peers.size >= MAX_PLAYERS) return send(ws, { t: 'error', msg: 'Phòng đã đủ 4 người.' });
       room.peers.set(ws.id, ws);
       ws.room = room;
+      ws.shipClass = m.shipClass || 'striker';
       send(ws, { t: 'joined', code: room.code, id: ws.id, hostId: room.host.id });
-      return send(room.host, { t: 'peer+', id: ws.id, name: cleanName(m.name) });
+      return send(room.host, { t: 'peer+', id: ws.id, name: cleanName(m.name), shipClass: ws.shipClass });
     }
 
     if (m.t === 'leave') return leave(ws);
@@ -298,4 +379,28 @@ setInterval(() => {
 server.listen(PORT, () => {
   console.log(`ReChoice đang chạy: http://localhost:${PORT}`);
   console.log(`Bảng xếp hạng lưu ở: ${storage === 'upstash' ? 'Upstash Redis (vĩnh viễn)' : 'file scores.json (mất khi máy chủ khởi động lại)'}`);
+
+  // Quét và cập nhật danh sách nhạc nền ban đầu
+  const initialTracks = updateStaticMusicJson();
+  console.log(`[Music] Đã quét thư mục music/: tìm thấy ${initialTracks.length} bài hát.`);
+
+  // Tự động theo dõi thư mục music/ khi người dùng copy/paste bài mới vào máy
+  try {
+    if (fs.existsSync(MUSIC_DIR)) {
+      let watchDebounce = null;
+      fs.watch(MUSIC_DIR, (eventType, filename) => {
+        clearTimeout(watchDebounce);
+        watchDebounce = setTimeout(() => {
+          console.log(`[Music] Thư mục music/ đã thay đổi (${eventType}: ${filename || ''}), đang cập nhật...`);
+          const updated = updateStaticMusicJson();
+          for (const ws of wss.clients) {
+            if (ws.readyState === 1) send(ws, { t: 'tracksUpdated', tracks: updated });
+          }
+        }, 500);
+      });
+      console.log(`[Music] Đang tự động theo dõi thư mục: ${MUSIC_DIR}`);
+    }
+  } catch (e) {
+    console.warn('[Music] Không thể tự động theo dõi thư mục music/:', e.message);
+  }
 });

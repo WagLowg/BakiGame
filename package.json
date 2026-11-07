@@ -5,7 +5,9 @@
   "main": "game/server/server.js",
   "private": true,
   "scripts": {
-    "start": "node game/server/server.js"
+    "start": "node game/server/server.js",
+    "prestart": "node game/server/scan-music.js",
+    "build:music": "node game/server/scan-music.js"
   },
   "engines": {
     "node": ">=18"

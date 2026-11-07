@@ -6,7 +6,7 @@
 
 const crew = () => Math.max(1, ships.size);
 const loopMul = () => 1 + Math.floor(((G ? G.wave : 1) - 1) / 100) * 1.5;
-const bossScale = () => (1 + 0.16 * ((G ? G.wave : 1) - 1)) * (1 + 0.45 * (crew() - 1)) * loopMul();
+const bossScale = () => (1 + 0.16 * ((G ? G.wave : 1) - 1)) * (1 + 0.45 * (crew() - 1)) * loopMul() * (typeof diffCfg === 'function' ? diffCfg().hpMul : 1);
 
 function spawnPoint(slot, n) {
   if (n <= 1) return [0, 0];
@@ -40,9 +40,10 @@ function startWave(n) {
   G.wave = n; G.vacuum = false;
   const special = n % 10 === 0, classic = !special && n % 5 === 0;
   const c = crew();
-  G.toSpawn = Math.round((special ? 3 + n / 5 : classic ? 4 + n : 6 + Math.floor(n * 4.5)) * (1 + 0.5 * (c - 1)));
-  if (special) G.toSpawn = Math.min(G.toSpawn, 24);
-  G.spawnEvery = Math.max(0.22, 1.1 - n * 0.06) / (1 + 0.25 * (c - 1)) * (special ? 2.2 : 1);
+  const df = typeof diffCfg === 'function' ? diffCfg() : { spawnMul: 1 };
+  G.toSpawn = Math.round((special ? 3 + n / 5 : classic ? 4 + n : 6 + Math.floor(n * 4.5)) * (1 + 0.5 * (c - 1)) * (df.spawnMul || 1));
+  if (special) G.toSpawn = Math.min(G.toSpawn, Math.round(24 * (df.spawnMul || 1)));
+  G.spawnEvery = Math.max(0.18, (1.1 - n * 0.06) / (df.spawnMul || 1)) / (1 + 0.25 * (c - 1)) * (special ? 2.2 : 1);
   G.spawnT = special ? 6 : 1;
 
   // Hồi sinh đồng đội đã chết hoặc gục khi sang đợt mới

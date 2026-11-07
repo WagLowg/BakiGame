@@ -221,6 +221,12 @@ function renderSettings() {
   for (const b of $('qual').children) b.setAttribute('aria-checked', b.dataset.q === SET.quality);
   for (const b of $('shakeSeg').children) b.setAttribute('aria-checked', +b.dataset.s === SET.shake);
   for (const b of $('numSeg').children) b.setAttribute('aria-checked', +b.dataset.n === SET.nums);
+  if ($('gpuInfoTag')) {
+    const gpuText = (typeof GPU_INFO !== 'undefined' && GPU_INFO.gpuName) ? GPU_INFO.gpuName : 'Phần cứng web';
+    $('gpuInfoTag').textContent = (typeof isIGPU !== 'undefined' && isIGPU)
+      ? `⚡ Phát hiện ${gpuText} · Đã bật cấu hình Siêu Mượt 60 FPS`
+      : `🎮 ${gpuText}`;
+  }
 }
 $('volMusic').addEventListener('input', e => {
   SET.music = +e.target.value; applyVolume(); saveSet(); renderSettings();
@@ -236,10 +242,17 @@ $('pauseSet').addEventListener('click', () => openSettings('pause'));
 $('setBack').addEventListener('click', closeSettings);
 
 function applyQuality() {
-  Q = QUAL[SET.quality] || QUAL.high;
-  renderer.setPixelRatio(Math.min(devicePixelRatio, Q.pr));
-  if (bloomPass) bloomPass.enabled = Q.bloom;
-  if (postPass) postPass.enabled = Q.post;
+  Q = QUAL[SET.quality] || QUAL.low;
+  renderer.setPixelRatio(Math.min(typeof devicePixelRatio !== 'undefined' ? devicePixelRatio : 1, Q.pr));
+  if (bloomPass) bloomPass.enabled = !!Q.bloom;
+  if (postPass) postPass.enabled = !!Q.post;
+  if (typeof floorMat !== 'undefined' && floorMat.uniforms && floorMat.uniforms.uSimple) {
+    floorMat.uniforms.uSimple.value = Q.simpleFloor ? 1.0 : 0.0;
+  }
+  if (typeof dust !== 'undefined') dust.visible = !Q.simpleFloor;
+  if (typeof shards !== 'undefined') {
+    for (const s of shards) s.m.visible = !Q.simpleFloor;
+  }
   resize();
 }
 
@@ -270,32 +283,38 @@ async function connectThen(msg) {
     $('createBtn').disabled = $('joinBtn').disabled = false;
   }
 }
-$('createBtn').addEventListener('click', () => connectThen({ t: 'create', name: myName() }));
+$('createBtn').addEventListener('click', () => connectThen({ t: 'create', name: myName(), shipClass: selectedClass }));
 $('joinBtn').addEventListener('click', () => {
   const code = $('codeIn').value.trim().toUpperCase();
   if (code.length !== 4) { $('onMsg').textContent = 'Mã phòng gồm 4 chữ cái.'; $('codeIn').focus(); return; }
-  connectThen({ t: 'join', code, name: myName() });
+  connectThen({ t: 'join', code, name: myName(), shipClass: selectedClass });
 });
 
 function showLobby() {
   hideScreens(); setHud(false); state = 'lobby';
   $('roomCode').textContent = NET.code;
   $('lobby').hidden = false;
+  updateDifficultyUI();
   updateLobby();
 }
 
 function updateLobby() {
   const ul = $('plist'); ul.innerHTML = '';
-  for (const [id, name, slot] of NET.roster) {
+  for (const [id, name, slot, shipClass] of NET.roster) {
     const li = document.createElement('li'); li.style.setProperty('--c', CSS_COLORS[slot % 4]);
     li.appendChild(document.createElement('i'));
     const n = document.createElement('span'); n.textContent = name; li.appendChild(n);
-    const tags = []; if (id === NET.hostId) tags.push('CHỦ PHÒNG'); if (id === NET.myId) tags.push('BẠN');
+    const cls = (typeof SHIP_CLASSES !== 'undefined' && SHIP_CLASSES[shipClass]) || {};
+    const tags = [cls.name || 'Tiên Phong'];
+    if (id === NET.hostId) tags.push('CHỦ PHÒNG');
+    if (id === NET.myId) tags.push('BẠN');
     const tag = document.createElement('em'); tag.textContent = tags.join(' · '); li.appendChild(tag);
     ul.appendChild(li);
   }
   const host = NET.mode === 'host';
   $('goBtn').hidden = !host;
+  const diffBtn = $('lobbyDiffBtn');
+  if (diffBtn) diffBtn.style.display = host ? 'inline-block' : 'none';
   $('lobWait').textContent = host ? (NET.roster.length < 2 ? 'Có thể bắt đầu một mình, hoặc chờ bạn bè vào.' : '') : 'Chờ chủ phòng bấm Bắt đầu…';
 }
 $('goBtn').addEventListener('click', () => { audio(); hostStart(); });
@@ -306,17 +325,19 @@ function leaveOnline() {
   NET.mode = 'solo'; NET.running = false; NET.roster = []; NET.code = null; NET.hostId = null; NET.myId = 'me';
   lvlWait.clear(); fxq = [];
 }
-function sendRoster() { if (typeof Net !== 'undefined') Net.send({ t: 'roster', list: NET.roster, running: NET.running }); }
+function sendRoster() { if (typeof Net !== 'undefined') Net.send({ t: 'roster', list: NET.roster, running: NET.running, diff: currentDifficulty }); }
 function hostStart() {
   NET.running = true;
-  if (typeof Net !== 'undefined') Net.send({ t: 'start', list: NET.roster });
+  if (typeof Net !== 'undefined') Net.send({ t: 'start', list: NET.roster, diff: currentDifficulty });
   newRun(NET.roster);
   beginPlay();
 }
 function syncRoster(list) {
   const ids = new Set(list.map(r => r[0]));
   for (const id of [...ships.keys()]) if (!ids.has(id)) removeShip(id);
-  for (const [id, name, slot] of list) if (!ships.has(id)) addShip(id, name, slot, id === NET.myId);
+  for (const [id, name, slot, shipClass] of list) {
+    if (!ships.has(id)) addShip(id, name, slot, id === NET.myId, shipClass || (id === NET.myId ? selectedClass : 'striker'));
+  }
 }
 
 if (typeof Net !== 'undefined') {
@@ -325,12 +346,12 @@ if (typeof Net !== 'undefined') {
     switch (m.t) {
       case 'created':
         NET.mode = 'host'; NET.myId = m.id; NET.hostId = m.id; NET.code = m.code; NET.running = false;
-        NET.roster = [[m.id, myName(), 0]];
-        clearWorld(); clearShips(); addShip(m.id, myName(), 0, true);
+        NET.roster = [[m.id, myName(), 0, selectedClass]];
+        clearWorld(); clearShips(); addShip(m.id, myName(), 0, true, selectedClass);
         showLobby(); break;
       case 'joined':
         NET.mode = 'guest'; NET.myId = m.id; NET.hostId = m.hostId; NET.code = m.code; NET.roster = [];
-        clearWorld(); clearShips(); addShip(m.id, myName(), 1, true);
+        clearWorld(); clearShips(); addShip(m.id, myName(), 1, true, selectedClass);
         showLobby(); break;
       case 'error':
         $('onMsg').textContent = m.msg; $('createBtn').disabled = $('joinBtn').disabled = false;
@@ -344,9 +365,10 @@ if (typeof Net !== 'undefined') {
         if (NET.mode !== 'host') break;
         const used = new Set(NET.roster.map(r => r[2])); let slot = 0; while (used.has(slot)) slot++;
         const name = cleanName(m.name);
-        NET.roster.push([m.id, name, slot]);
+        const shipClass = m.shipClass || 'striker';
+        NET.roster.push([m.id, name, slot, shipClass]);
         if (NET.running && G) {
-          const s = addShip(m.id, name, slot, false); const [x, z] = spawnPoint(slot, 4);
+          const s = addShip(m.id, name, slot, false, shipClass); const [x, z] = spawnPoint(slot, 4);
           s.pos.set(x, 0, z); s.tx = x; s.tz = z; s.inv = 2.5;
           rawBanner(name.toUpperCase(), 'đã vào trận');
         }
@@ -369,6 +391,17 @@ if (typeof Net !== 'undefined') {
         s.aim.set(+m.ax || 0, 0, +m.az || 0); if (s.aim.lengthSq() < 1e-4) s.aim.set(0, 0, -1); s.aim.normalize();
         s.firing = !!m.f;
         if (m.d) { if (s.dashT <= 0) s.dashId++; s.dashT = 0.12; }
+        if (m.u) { s.useUltimate(); }
+        break;
+      }
+      case 'changeClass': {
+        if (NET.mode !== 'host') break;
+        const r = NET.roster.find(x => x[0] === m.from);
+        if (r && m.shipClass) {
+          r[3] = m.shipClass;
+          sendRoster();
+          updateLobby();
+        }
         break;
       }
       case 'pick': { if (NET.mode === 'host') applyPick(ships.get(m.from), m.i); break; }
@@ -376,13 +409,27 @@ if (typeof Net !== 'undefined') {
       /* ----- Khách nhận ----- */
       case 'roster':
         if (NET.mode !== 'guest') break;
-        NET.roster = m.list; updateLobby();
+        NET.roster = m.list;
+        if (m.diff) { currentDifficulty = m.diff; updateDifficultyUI(); }
+        updateLobby();
         if (m.running && state === 'lobby') { newRun(m.list); beginPlay(); }
         else if (m.running && state !== 'over') syncRoster(m.list);
         break;
       case 'start':
         if (NET.mode !== 'guest') break;
-        NET.roster = m.list; newRun(m.list); beginPlay(); break;
+        NET.roster = m.list;
+        if (m.diff) { currentDifficulty = m.diff; updateDifficultyUI(); }
+        newRun(m.list); beginPlay(); break;
+      case 'diff':
+        if (NET.mode === 'guest') {
+          currentDifficulty = m.diff || 'normal';
+          updateDifficultyUI();
+          if (typeof rawToast === 'function') rawToast(`Độ khó phòng: ${diffCfg().badge}`);
+        }
+        break;
+      case 'tracksUpdated':
+        if (typeof syncMusicTracks === 'function') syncMusicTracks(true);
+        break;
       case 'lvl':
         if (NET.mode !== 'guest' || !me) break;
         me.upg = m.up || {}; showCards(m.ids, m.lv, me.upg); break;
@@ -414,6 +461,12 @@ function initClassPicker() {
       card.classList.add('active');
       selectedClass = card.dataset.class;
       try { localStorage.setItem('rechoice_class', selectedClass); } catch (e) {}
+      if (NET.mode === 'host' && NET.roster) {
+        const myR = NET.roster.find(r => r[0] === NET.myId);
+        if (myR) { myR[3] = selectedClass; sendRoster(); updateLobby(); }
+      } else if (NET.mode === 'guest' && typeof Net !== 'undefined') {
+        Net.send({ t: 'changeClass', shipClass: selectedClass });
+      }
       if (me && me.g) {
         // Tái tạo lại visual tàu trên màn hình menu
         const parent = me.g.parent;
@@ -589,3 +642,109 @@ if (deselectAllBtn) {
     snd('click');
   });
 }
+
+const refreshTracksBtn = $('refreshTracksBtn');
+if (refreshTracksBtn) {
+  refreshTracksBtn.addEventListener('click', () => {
+    audio();
+    if (typeof syncMusicTracks === 'function') syncMusicTracks(true);
+    snd('click');
+  });
+}
+
+const musicFileInput = $('musicFileInput');
+if (musicFileInput) {
+  musicFileInput.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    audio();
+    let uploadedCount = 0;
+
+    for (const file of files) {
+      try {
+        const res = await fetch('/api/upload-track', {
+          method: 'POST',
+          headers: { 'x-filename': encodeURIComponent(file.name) },
+          body: file
+        });
+        if (res.ok) {
+          uploadedCount++;
+        } else {
+          throw new Error('Upload fallback');
+        }
+      } catch (err) {
+        // Fallback offline qua Blob URL nếu không có server
+        const blobUrl = URL.createObjectURL(file);
+        const trkId = 'track_' + encodeURIComponent(file.name);
+        if (!MUSIC_TRACKS.some(t => t.id === trkId)) {
+          MUSIC_TRACKS.push({
+            id: trkId,
+            title: file.name.replace(/\.[^/.]+$/, ''),
+            file: file.name,
+            style: 'Nhạc Tải Lên /file',
+            src: blobUrl,
+            isFile: true
+          });
+          userPlaylist.push(trkId);
+          uploadedCount++;
+        }
+      }
+    }
+
+    if (typeof syncMusicTracks === 'function') await syncMusicTracks(false);
+    saveUserPlaylist(userPlaylist);
+    if (typeof updatePlaylistUI === 'function') updatePlaylistUI();
+    if (typeof rawToast === 'function') rawToast(`🎵 Đã thêm thành công ${uploadedCount} bài hát vào Playlist!`);
+    musicFileInput.value = '';
+  });
+}
+
+/* ---------- Xử lý 4 Cấp Độ Khó (Difficulty Selection Logic) ---------- */
+function setDifficulty(diffId, broadcast = true) {
+  if (typeof DIFFICULTIES === 'undefined' || !DIFFICULTIES[diffId]) return;
+  currentDifficulty = diffId;
+  try { localStorage.setItem('rechoice-difficulty', diffId); } catch (e) {}
+  updateDifficultyUI();
+  if (broadcast && NET.mode === 'host' && typeof Net !== 'undefined') {
+    Net.send({ t: 'diff', diff: diffId });
+  }
+}
+
+function updateDifficultyUI() {
+  if (typeof diffCfg !== 'function') return;
+  const cfg = diffCfg();
+  const diffBtns = document.querySelectorAll('.diff-btn');
+  diffBtns.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.diff === currentDifficulty);
+  });
+  const descEl = $('diffDesc');
+  if (descEl) descEl.textContent = `${cfg.badge}: ${cfg.desc}`;
+
+  const lobBadge = $('lobbyDiffBadge');
+  if (lobBadge) {
+    lobBadge.textContent = cfg.badge;
+    lobBadge.style.color = cfg.color;
+  }
+}
+
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    setDifficulty(btn.dataset.diff, true);
+    snd('click');
+  });
+});
+
+const lobDiffBtn = $('lobbyDiffBtn');
+if (lobDiffBtn) {
+  lobDiffBtn.addEventListener('click', () => {
+    if (NET.mode !== 'host') {
+      if (typeof rawToast === 'function') rawToast('Chỉ chủ phòng mới có quyền đổi độ khó!');
+      return;
+    }
+    const order = ['easy', 'normal', 'hard', 'nightmare'];
+    const nextIdx = (order.indexOf(currentDifficulty) + 1) % order.length;
+    setDifficulty(order[nextIdx], true);
+    snd('click');
+  });
+}
+updateDifficultyUI();

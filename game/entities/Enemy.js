@@ -15,16 +15,17 @@ class Enemy extends Entity {
     this.P = vis.P;
     this.fade = vis.fade;
 
-    // Tính toán chỉ số máu theo Đợt và Số người chơi (Crew scaling)
+    // Tính toán chỉ số máu theo Đợt, Số người chơi và Cấp độ khó (Difficulty scaling)
     const c = typeof crew === 'function' ? crew() : 1;
-    const sc = this.t.boss || this.t.part
+    const df = typeof diffCfg === 'function' ? diffCfg() : { hpMul: 1, spdMul: 1 };
+    const sc = (this.t.boss || this.t.part
       ? (type === 'boss' ? (1 + 0.7 * (G.wave / 5 - 1)) * (1 + 0.35 * (c - 1)) : (typeof bossScale === 'function' ? bossScale() : 1))
-      : (1 + 0.14 * (G.wave - 1)) * (1 + 0.35 * (c - 1));
+      : (1 + 0.14 * (G.wave - 1)) * (1 + 0.35 * (c - 1))) * (df.hpMul || 1);
 
     this.hp = options.hp || this.t.hp * sc;
     this.max = options.max || this.hp;
     this.r = this.t.r;
-    this.spd = this.t.spd * (1 + 0.02 * (G ? G.wave : 1));
+    this.spd = this.t.spd * (1 + 0.02 * (G ? G.wave : 1)) * (df.spdMul || 1);
     this.spawn = options.spawnT !== undefined ? options.spawnT : 0.45;
     this.spawn0 = this.spawn;
     this.flash = 0;
@@ -86,7 +87,8 @@ class Enemy extends Entity {
       else if (d < rg) { const sx = -az * this.dir, sz = ax * this.dir; ax = sx; az = sz; spd *= 0.7; }
       this.cd -= dt;
       if (target && this.cd <= 0 && d < rg + 4 && state === 'play') {
-        this.cd = this.t.fire * rnd(0.8, 1.2);
+        const frMul = typeof diffCfg === 'function' ? (diffCfg().fireRateMul || 1) : 1;
+        this.cd = (this.t.fire / frMul) * rnd(0.8, 1.2);
         fireE(this.pos.x, this.pos.z, Math.atan2(dx, dz), 11);
         this.flash = 0.12;
         snd('enemyShot');

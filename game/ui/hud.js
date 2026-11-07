@@ -37,13 +37,16 @@ function hud() {
     } else {
       const pct = Math.min(100, (me.ult / me.maxUlt) * 100);
       ultBar.style.width = pct + '%';
-      const isReady = me.ult >= me.maxUlt;
+      const onCd = me.ultCooldown > 0;
+      const isReady = !onCd && me.ult >= me.maxUlt;
       if (ultBar.parentElement) ultBar.parentElement.classList.toggle('ready', isReady);
       if (ultBtn) {
         ultBtn.classList.toggle('ready', isReady);
-        ultBtn.textContent = 'ULTI';
+        ultBtn.textContent = onCd ? `${Math.ceil(me.ultCooldown)}s` : (isReady ? 'ULTI' : `${Math.floor(pct)}%`);
       }
-      if (ultTxt) ultTxt.textContent = isReady ? 'ULTI SẴN SÀNG [Q/E]' : `ULT ${Math.floor(pct)}%`;
+      if (ultTxt) {
+        ultTxt.textContent = onCd ? `HỒI CHIÊU: ${me.ultCooldown.toFixed(1)}s` : (isReady ? 'ULTI SẴN SÀNG [Q/E]' : `ULT ${Math.floor(pct)}%`);
+      }
     }
   }
 

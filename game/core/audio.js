@@ -210,53 +210,171 @@ function snd(name) {
 /* ---------- Hệ Thống Thư Viện Nhạc Nền Trong /music & Quản Lý Playlist Tùy Chọn ---------- */
 const BGM_MAX = 0.8;
 
-// Danh sách các file nhạc thực tế trong thư mục music/
-const MUSIC_FILES = [
-  { file: 'nhac-nen.mp3', style: 'Nhạc Nền /music' },
-  { file: 'Mixtape 3In1 X Parado ( Thái Hoàng X Slex )  Full Set Nhạc Style TH Hot Tiktok Hay Nhất 2025 - Nam D.mp3', style: 'Nhạc Sôi Động /music' }
+// Helper xây dựng đường dẫn âm thanh tương thích cả 3 môi trường:
+// 1. file:/// (mở trực tiếp index.html)
+// 2. VS Code Live Server (localhost:5500)
+// 3. Node.js Production Server (localhost:3000 hoặc host online)
+function getTrackSrc(item) {
+  if (item && item.src && item.src.startsWith('blob:')) return item.src;
+  const f = typeof item === 'string' ? item : (item.file || '');
+  return encodeURI('../music/' + f);
+}
+
+function getAltTrackSrc(item) {
+  if (item && item.src && item.src.startsWith('blob:')) return item.src;
+  const f = typeof item === 'string' ? item : (item.file || '');
+  return '/music/' + encodeURIComponent(f);
+}
+
+// Danh sách các file nhạc mặc định (đồng bộ từ thư mục music/ của dự án)
+const DEFAULT_MUSIC_FILES = [
+  { file: 'nhac-nen.mp3', title: 'Nhạc Nền Không Gian', style: 'Nhạc Không Gian /music' },
+  { file: 'JACK J97 LIỄU THANH YÊN LYRIC VIDEO Thương má em hồng mình không trong bóng đêm.mp3', title: 'JACK J97 - Liễu Thanh Yên', style: 'Nhạc Trẻ /music' },
+  { file: 'Mixtape 3In1 X Parado ( Thái Hoàng X Slex )  Full Set Nhạc Style TH Hot Tiktok Hay Nhất 2025 - Nam D.mp3', title: 'Mixtape 3In1 X Parado (Thái Hoàng x Slex)', style: 'Nhạc Sôi Động /music' },
+  { file: 'Mixtape Bình Gold ADAMN x BCDBL x OBGTLH x Trăng Hoa Mây Mưa Thanh Phong Remix.mp3', title: 'Mixtape Bình Gold - Trăng Hoa Mây Mưa Remix', style: 'Vinahouse /music' }
 ];
 
-const MUSIC_TRACKS = MUSIC_FILES.map((item, idx) => ({
-  id: 'track_' + idx,
-  title: item.file,
-  style: item.style,
-  // music/ nằm ở thư mục gốc dự án, ngoài game/. '../music/' chạy được cả khi mở file:// lẫn qua server
-  // (trên server, '/index.html' + '../music/x' → '/music/x', server.js ánh xạ ra thư mục music/).
-  src: encodeURI('../music/' + item.file),
+let MUSIC_TRACKS = DEFAULT_MUSIC_FILES.map((item, idx) => ({
+  id: 'track_' + encodeURIComponent(item.file),
+  title: item.title || item.file.replace(/\.[^/.]+$/, ''),
+  file: item.file,
+  style: item.style || 'Nhạc /music',
+  src: getTrackSrc(item),
   isFile: true
 }));
 
-// Khởi tạo Playlist cá nhân của người chơi từ localStorage
 const KEY_PLAYLIST = 'rechoice_user_playlist';
+const KEY_SEEN = 'rechoice_seen_music_tracks';
 let userPlaylist = [];
-try {
-  const saved = localStorage.getItem(KEY_PLAYLIST);
-  if (saved) {
-    const parsed = JSON.parse(saved);
-    if (Array.isArray(parsed)) {
-      userPlaylist = parsed.filter(id => MUSIC_TRACKS.some(t => t.id === id));
-    }
-  }
-} catch (e) {}
 
-if (!userPlaylist || userPlaylist.length === 0) {
-  // Mặc định chọn tất cả bài hát có trong thư mục music/
-  userPlaylist = MUSIC_TRACKS.map(t => t.id);
-  try { localStorage.setItem(KEY_PLAYLIST, JSON.stringify(userPlaylist)); } catch (e) {}
+function getSeenTracks() {
+  try {
+    const raw = localStorage.getItem(KEY_SEEN);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch (e) {
+    return new Set();
+  }
 }
+
+function saveSeenTracks(seenSet) {
+  try {
+    localStorage.setItem(KEY_SEEN, JSON.stringify(Array.from(seenSet)));
+  } catch (e) {}
+}
+
+function initUserPlaylist() {
+  const saved = localStorage.getItem(KEY_PLAYLIST);
+  let parsed = null;
+  try { if (saved) parsed = JSON.parse(saved); } catch (e) {}
+  if (Array.isArray(parsed) && parsed.length > 0) {
+    userPlaylist = parsed.filter(id => MUSIC_TRACKS.some(t => t.id === id));
+  }
+  if (!userPlaylist || userPlaylist.length === 0) {
+    userPlaylist = MUSIC_TRACKS.map(t => t.id);
+  }
+}
+initUserPlaylist();
 
 function saveUserPlaylist(list) {
-  userPlaylist = list && list.length ? list : [MUSIC_TRACKS[0].id];
+  userPlaylist = list && list.length ? list : (MUSIC_TRACKS.length ? [MUSIC_TRACKS[0].id] : []);
   try { localStorage.setItem(KEY_PLAYLIST, JSON.stringify(userPlaylist)); } catch (e) {}
 }
+
+/**
+ * Tự động đồng bộ toàn bộ file nhạc từ thư mục /music theo thời gian thực.
+ * Khi Dev merge bài mới vào folder music/ và deploy, tất cả người chơi
+ * đều tự động nhận và phát các bài mới mà không cần thao tác gì!
+ */
+async function syncMusicTracks(showToast = false) {
+  try {
+    let list = null;
+    // 1. Thử lấy danh sách động từ API của máy chủ
+    try {
+      const res = await fetch('/api/tracks?t=' + Date.now());
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.tracks) && data.tracks.length > 0) {
+          list = data.tracks;
+        }
+      }
+    } catch (e) {}
+
+    // 2. Nếu không có API (mở file tĩnh), đọc file music-list.json được tự động sinh
+    if (!list) {
+      try {
+        const res2 = await fetch('music-list.json?t=' + Date.now());
+        if (res2.ok) {
+          const data2 = await res2.json();
+          if (Array.isArray(data2) && data2.length > 0) list = data2;
+        }
+      } catch (e) {}
+    }
+
+    if (list && list.length > 0) {
+      MUSIC_TRACKS = list.map((item, idx) => ({
+        id: 'track_' + encodeURIComponent(item.file || ('idx_' + idx)),
+        title: item.title || (item.file ? item.file.replace(/\.[^/.]+$/, '') : ('Bài hát ' + (idx + 1))),
+        file: item.file,
+        style: item.style || 'Nhạc /music',
+        src: item.src ? item.src : getTrackSrc(item),
+        isFile: true
+      }));
+
+      const seenSet = getSeenTracks();
+      const isFirstSession = !localStorage.getItem(KEY_PLAYLIST);
+
+      if (isFirstSession) {
+        // Lần đầu vào game: Kích hoạt toàn bộ tất cả bài hát từ thư mục music/
+        userPlaylist = MUSIC_TRACKS.map(t => t.id);
+        MUSIC_TRACKS.forEach(t => seenSet.add(t.id));
+      } else {
+        // Người chơi cũ: Bất kỳ bài mới nào vừa được merge/deploy lên server
+        // sẽ tự động được thêm vào Playlist chơi ngay lập tức!
+        for (const t of MUSIC_TRACKS) {
+          if (!seenSet.has(t.id)) {
+            if (!userPlaylist.includes(t.id)) {
+              userPlaylist.push(t.id);
+            }
+            seenSet.add(t.id);
+          }
+        }
+      }
+
+      saveSeenTracks(seenSet);
+      saveUserPlaylist(userPlaylist);
+
+      if (!currentTrack || !MUSIC_TRACKS.some(t => t.id === currentTrack.id)) {
+        currentTrack = MUSIC_TRACKS[0];
+      }
+
+      if (typeof updatePlaylistUI === 'function') updatePlaylistUI();
+
+      if (showToast && typeof rawToast === 'function') {
+        rawToast(`🎵 Đã cập nhật ${MUSIC_TRACKS.length} bài hát từ folder music/!`);
+      }
+    }
+  } catch (err) {
+    console.warn('Lỗi khi đồng bộ nhạc:', err);
+  }
+}
+syncMusicTracks();
 
 const bgm = new Audio();
 bgm.loop = false;
 bgm.preload = 'auto';
 let bgmOk = true;
+
 bgm.addEventListener('error', (e) => {
   bgmOk = false;
   console.warn('Không tải được bài nhạc:', bgm.src, e);
+  if (currentTrack && bgm.dataset.triedAlt !== '1') {
+    bgm.dataset.triedAlt = '1';
+    const alt = getAltTrackSrc(currentTrack);
+    console.log('Thử đường dẫn nhạc dự phòng:', alt);
+    bgm.src = alt;
+    bgm.load();
+    bgm.play().catch(() => {});
+  }
 });
 
 // Tự động chuyển sang bài tiếp theo trong Playlist khi bài phát hết
@@ -280,7 +398,7 @@ applyVolume();
 
 function getActivePlaylistTracks() {
   const valid = MUSIC_TRACKS.filter(t => userPlaylist.includes(t.id));
-  return valid.length ? valid : [MUSIC_TRACKS[0]];
+  return valid.length ? valid : (MUSIC_TRACKS.length ? MUSIC_TRACKS : [MUSIC_TRACKS[0]]);
 }
 
 function bgmPlay() {
@@ -293,13 +411,26 @@ function bgmPlay() {
   stopPreview();
 
   if (currentTrack) {
+    const primarySrc = currentTrack.src || getTrackSrc(currentTrack);
+    const fallbackSrc = getAltTrackSrc(currentTrack);
+
     if (bgm.dataset.trackId !== currentTrack.id) {
-      bgm.src = currentTrack.src;
+      bgm.src = primarySrc;
       bgm.dataset.trackId = currentTrack.id;
+      bgm.dataset.triedAlt = '0';
       bgm.load();
     }
     const p = bgm.play();
-    if (p && p.catch) p.catch(() => {});
+    if (p && p.catch) {
+      p.catch(err => {
+        console.warn('bgm.play error, thử fallback:', err);
+        if (bgm.dataset.triedAlt !== '1') {
+          bgm.dataset.triedAlt = '1';
+          bgm.src = fallbackSrc;
+          bgm.play().catch(() => {});
+        }
+      });
+    }
   }
 }
 
@@ -327,11 +458,17 @@ function bgmNext(auto = false) {
     const p = bgm.play();
     if (p && p.catch) p.catch(() => {});
   } else {
-    bgm.src = currentTrack.src;
+    bgm.src = currentTrack.src || getTrackSrc(currentTrack);
     bgm.dataset.trackId = currentTrack.id;
+    bgm.dataset.triedAlt = '0';
     bgm.load();
     const p = bgm.play();
-    if (p && p.catch) p.catch(() => {});
+    if (p && p.catch) {
+      p.catch(() => {
+        bgm.src = getAltTrackSrc(currentTrack);
+        bgm.play().catch(() => {});
+      });
+    }
   }
 
   const info = `${trk.title} (${currentPlaylistIdx + 1}/${list.length})`;
@@ -357,11 +494,17 @@ function bgmPrev() {
     const p = bgm.play();
     if (p && p.catch) p.catch(() => {});
   } else {
-    bgm.src = currentTrack.src;
+    bgm.src = currentTrack.src || getTrackSrc(currentTrack);
     bgm.dataset.trackId = currentTrack.id;
+    bgm.dataset.triedAlt = '0';
     bgm.load();
     const p = bgm.play();
-    if (p && p.catch) p.catch(() => {});
+    if (p && p.catch) {
+      p.catch(() => {
+        bgm.src = getAltTrackSrc(currentTrack);
+        bgm.play().catch(() => {});
+      });
+    }
   }
 
   const info = `${trk.title} (${currentPlaylistIdx + 1}/${list.length})`;
@@ -381,6 +524,7 @@ function stopPreview() {
 
 function previewTrack(id) {
   audio();
+  if (AC && AC.state === 'suspended') AC.resume();
   if (previewingTrackId === id) {
     stopPreview();
     return;
@@ -392,10 +536,34 @@ function previewTrack(id) {
   if (!trk) return;
 
   previewingTrackId = id;
-  previewAudio = new Audio(trk.src);
+  const primarySrc = trk.src || getTrackSrc(trk);
+  const fallbackSrc = getAltTrackSrc(trk);
+
+  previewAudio = new Audio(primarySrc);
   previewAudio.volume = clamp(BGM_MAX * (typeof SET !== 'undefined' ? SET.music : 60) / 100, 0, 1);
+
+  let triedAlt = false;
+  previewAudio.addEventListener('error', (e) => {
+    if (!triedAlt && primarySrc !== fallbackSrc) {
+      triedAlt = true;
+      console.warn('Preview fallback URL:', fallbackSrc);
+      previewAudio.src = fallbackSrc;
+      previewAudio.load();
+      previewAudio.play().catch(err => console.warn('Cả 2 đường dẫn nhạc đều lỗi:', err));
+    }
+  });
+
   const p = previewAudio.play();
-  if (p && p.catch) p.catch(() => {});
+  if (p && p.catch) {
+    p.catch(err => {
+      console.warn('Không thể tự phát preview:', err);
+      if (!triedAlt) {
+        triedAlt = true;
+        previewAudio.src = fallbackSrc;
+        previewAudio.play().catch(() => {});
+      }
+    });
+  }
   previewAudio.onended = () => stopPreview();
 
   if (typeof updatePlaylistUI === 'function') updatePlaylistUI();

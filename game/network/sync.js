@@ -16,7 +16,10 @@ function snapshot() {
       s.id, r2(s.pos.x), r2(s.pos.z), r2(s.g.rotation.y), r2(s.g.rotation.z),
       Math.ceil(s.S.hp), s.S.maxHp,
       (s.inv > 0 ? 1 : 0) | (s.dashT > 0 ? 2 : 0) | (s.dead ? 4 : 0),
-      s.blades.length
+      s.blades.length,
+      Math.round(s.ult || 0),
+      Math.round((s.ultActive || 0) * 10),
+      Math.round((s.ultCooldown || 0) * 10)
     ]);
   }
 
@@ -62,15 +65,21 @@ function applySnap(m) {
   if (st === 'play' && state === 'levelup') { $('lvl').hidden = true; curOffer = null; state = 'play'; }
   else if (st === 'dying' && state === 'play') state = 'dying';
 
-  for (const [id, x, z, ry, rz, hp, maxHp, fl, nb] of m.p) {
+  for (const [id, x, z, ry, rz, hp, maxHp, fl, nb, ult, ultAct10, ultCd10] of m.p) {
     const s = ships.get(id); if (!s) continue;
     s.S.hp = hp; s.S.maxHp = maxHp;
     const dead = !!(fl & 4);
     if (s.local) {
       if (dead && !s.dead) { s.firing = false; if (ships.size > 1) rawBanner('TÀU VỠ', 'Hồi sinh ở đợt sau'); }
       s.netInv = !!(fl & 1);
+      if (ult !== undefined) s.ult = ult;
+      if (ultAct10 !== undefined) s.ultActive = ultAct10 / 10;
+      if (ultCd10 !== undefined) s.ultCooldown = ultCd10 / 10;
     } else {
       s.tx = x; s.tz = z; s.tRy = ry; s.tRz = rz; s.netInv = !!(fl & 3);
+      if (ult !== undefined) s.ult = ult;
+      if (ultAct10 !== undefined) s.ultActive = ultAct10 / 10;
+      if (ultCd10 !== undefined) s.ultCooldown = ultCd10 / 10;
       if (s.dead && !dead) s.pos.set(x, 0, z);
     }
     s.dead = dead; s.g.visible = !dead;
@@ -147,14 +156,58 @@ function applyFx(ev) {
     case 'h': if (ev[1] === NET.myId) flashHurt(); break;
     case 'dd': if (ev[1] === NET.myId) rawBanner('TÀU VỠ', 'Hồi sinh ở đợt sau'); break;
     case 'rs': if (ev[1] === NET.myId && me) { me.pos.set(ev[2], 0, ev[3]); me.vx = me.vz = 0; me.dead = false; me.g.visible = true; rawBanner('HỒI SINH', 'Quay lại chiến đấu!'); } break;
+    case 'U': {
+      const s = ships.get(ev[1]);
+      const cls = ev[2] || (s ? s.shipClass : 'striker');
+      const px = ev[3], pz = ev[4], ax = ev[5], az = ev[6];
+      const col = s ? s.colorHex : 0x2fe0d0;
+      const sName = s ? s.name : 'Đồng đội';
+      if (s) {
+        s.ultActive = 5.0;
+        s.ultCooldown = 8.0;
+      }
+      if (sfx.ult) sfx.ult();
+      rawScreenFlash(0.45);
+      if (typeof G !== 'undefined' && G) G.shake = 1.8;
+      caFx = Math.max(caFx, 1.4);
+      rawShock(px, pz, 28, 22, col);
+      rawEmit(px, 0.7, pz, col, 50, 15, 0.85);
+
+      const baseAng = Math.atan2(ax, az);
+      const rx = Math.cos(baseAng), rz = -Math.sin(baseAng);
+
+      if (cls === 'striker') {
+        rawBanner('BÃO TỐ LÔI ĐÌNH', `${sName} kích hoạt Lôi Quang Cực Đại!`);
+        for (const sOff of [-0.55, 0.55]) {
+          const sx = px + rx * sOff, sz = pz + rz * sOff;
+          rawBeam(sx, sz, sx + ax * 36, sz + az * 36, 1.15, 0, 0.45, col, 0);
+        }
+      } else if (cls === 'colossus') {
+        rawBanner('TẬN THẾ NHIỆT HẠCH', `${sName} kích hoạt Sóng Supernova!`);
+        rawShock(px, pz, 28, 28, 0xff5522);
+      } else if (cls === 'phantom') {
+        rawBanner('BĂNG PHONG TUYỆT KỸ', `${sName} phóng Băng Phong Tuyệt Kỹ!`);
+        for (const sOff of [-0.52, 0.52]) {
+          const sx = px + rx * sOff, sz = pz + rz * sOff;
+          rawBeam(sx, sz, sx + ax * 38, sz + az * 38, 1.3, 0, 0.5, 0xb88cff, 0);
+        }
+      } else if (cls === 'dronemaster') {
+        rawBanner('MA TRẬN HỦY DIỆT', `${sName} phóng Vệ Tinh Pháo Đài!`);
+        rawShock(px, pz, 28, 24, 0x2fe0d0);
+      }
+      break;
+    }
   }
 }
 
 function sendInput() {
   if (!me) return;
+  const wantU = me.wantUlt ? 1 : 0;
+  me.wantUlt = false;
   Net.send({
     t: 'in', x: r2(me.pos.x), z: r2(me.pos.z), ry: r2(me.g.rotation.y), rz: r2(me.g.rotation.z),
-    ax: r2(me.aim.x), az: r2(me.aim.z), f: (me.firing && !me.dead) ? 1 : 0, d: me.dashT > 0 ? 1 : 0
+    ax: r2(me.aim.x), az: r2(me.aim.z), f: (me.firing && !me.dead) ? 1 : 0, d: me.dashT > 0 ? 1 : 0,
+    u: wantU
   });
 }
 

@@ -74,13 +74,18 @@ addEventListener('mouseup', () => mouse.down = false);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 /* ---------- Cảm ứng Mobile ---------- */
+function enableTouchControls() {
+  isTouch = true;
+  const d = $('dashBtn'); if (d) d.classList.add('on');
+  const u = $('ultBtn'); if (u) u.classList.add('on');
+  canvas.classList.remove('aiming');
+}
+if (isTouch) enableTouchControls();
+
 canvas.addEventListener('touchstart', e => {
   e.preventDefault(); audio();
-  if (!isTouch) {
-    isTouch = true;
-    $('dashBtn').classList.add('on');
-    if ($('ultBtn')) $('ultBtn').classList.add('on');
-    canvas.classList.remove('aiming');
+  if (!isTouch || !$('dashBtn').classList.contains('on')) {
+    enableTouchControls();
   }
   for (const t of e.changedTouches) {
     const s = t.clientX < innerWidth / 2 ? sticks.L : sticks.R;
@@ -110,9 +115,24 @@ function endTouch(e) {
 addEventListener('touchend', endTouch);
 addEventListener('touchcancel', endTouch);
 
-$('dashBtn').addEventListener('touchstart', e => { e.preventDefault(); dash(); }, { passive: false });
-$('dashBtn').addEventListener('click', dash);
+$('dashBtn').addEventListener('touchstart', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  dash();
+}, { passive: false });
+$('dashBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  dash();
+});
+
 if ($('ultBtn')) {
-  $('ultBtn').addEventListener('touchstart', e => { e.preventDefault(); useUltimate(); }, { passive: false });
-  $('ultBtn').addEventListener('click', useUltimate);
+  $('ultBtn').addEventListener('touchstart', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    useUltimate();
+  }, { passive: false });
+  $('ultBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    useUltimate();
+  });
 }
